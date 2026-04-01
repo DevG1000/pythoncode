@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-03-16T14:24:39.129772",
+  "environment": "unknown",
+  "total_checks": 7,
+  "passed_checks": 1,
+  "failed_checks": 2,
+  "warning_checks": 4,
+  "skipped_checks": 0,
+  "checks": [
+    {
+      "id": "env-001",
+      "description": "检查环境变量配置",
+      "check": "检查FLASK_ENV是否为production",
+      "required": true,
+      "severity": 

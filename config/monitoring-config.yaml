@@ -1,0 +1,265 @@
+# 监控系统配置
+monitoring:
+  # 监控间隔（秒）
+  interval: 300
+  
+  # 告警配置
+  alerts:
+    # 邮件告警
+    email:
+      enabled: true
+      smtp_server: ${MAIL_SERVER}
+      smtp_port: ${MAIL_PORT}
+      username: ${MAIL_USERNAME}
+      password: ${MAIL_PASSWORD}
+      from_address: monitoring@pythoncode.com
+      to_addresses:
+        - ${SECURITY_ALERT_EMAIL}
+        - admin@example.com
+    
+    # Slack告警
+    slack:
+      enabled: true
+      webhook_url: ${SLACK_WEBHOOK_URL}
+      channel: "#monitoring"
+      username: "PythonCode Monitor"
+    
+    # Webhook告警
+    webhook:
+      enabled: false
+      url: ""
+      headers:
+        Content-Type: "application/json"
+  
+  # 监控指标
+  metrics:
+    # 系统指标
+    system:
+      cpu_threshold: 80      # CPU使用率阈值（%）
+      memory_threshold: 85   # 内存使用率阈值（%）
+      disk_threshold: 90     # 磁盘使用率阈值（%）
+    
+    # 应用指标
+    application:
+      response_time_threshold: 5000    # 响应时间阈值（毫秒）
+      error_rate_threshold: 5          # 错误率阈值（%）
+      request_rate_threshold: 1000     # 请求率阈值（请求/分钟）
+    
+    # 数据库指标
+    database:
+      connection_threshold: 80         # 连接数阈值（%）
+      query_time_threshold: 1000       # 查询时间阈值（毫秒）
+      replication_lag_threshold: 60    # 复制延迟阈值（秒）
+    
+    # 安全指标
+    security:
+      failed_login_threshold: 10       # 失败登录阈值（次/小时）
+      suspicious_activity_threshold: 5 # 可疑活动阈值（次/小时）
+      vulnerability_threshold: 1       # 漏洞数量阈值
+  
+  # 监控目标
+  targets:
+    # API服务
+    api:
+      url: "http://api:5000/api/health"
+      timeout: 10
+      check_interval: 30
+    
+    # 数据库
+    database:
+      type: "postgresql"
+      host: "postgres"
+      port: 5432
+      database: ${POSTGRES_DB}
+      username: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      check_interval: 60
+    
+    # Redis缓存
+    redis:
+      type: "redis"
+      host: "redis"
+      port: 6379
+      password: ${REDIS_PASSWORD}
+      check_interval: 60
+    
+    # Nginx
+    nginx:
+      url: "http://nginx/nginx_status"
+      timeout: 5
+      check_interval: 30
+  
+  # 日志监控
+  logs:
+    # 应用日志
+    application:
+      paths:
+        - "/app/logs/app.log"
+      patterns:
+        error: "ERROR"
+        warning: "WARNING"
+        critical: "CRITICAL"
+    
+    # Nginx日志
+    nginx:
+      paths:
+        - "/var/log/nginx/access.log"
+        - "/var/log/nginx/error.log"
+      patterns:
+        error_4xx: '" 4[0-9]{2} '
+        error_5xx: '" 5[0-9]{2} '
+    
+    # 安全日志
+    security:
+      paths:
+        - "/app/logs/security.log"
+      patterns:
+        failed_login: "LOGIN_FAILED"
+        unauthorized: "UNAUTHORIZED_ACCESS"
+        brute_force: "BRUTE_FORCE_ATTEMPT"
+  
+  # 报告配置
+  reports:
+    # 日报
+    daily:
+      enabled: true
+      time: "08:00"
+      format: "html"
+      recipients:
+        - ${SECURITY_ALERT_EMAIL}
+    
+    # 周报
+    weekly:
+      enabled: true
+      day: "monday"
+      time: "09:00"
+      format: "pdf"
+      recipients:
+        - ${SECURITY_ALERT_EMAIL}
+        - "management@example.com"
+    
+    # 月报
+    monthly:
+      enabled: true
+      day: 1
+      time: "10:00"
+      format: "pdf"
+      recipients:
+        - ${SECURITY_ALERT_EMAIL}
+        - "compliance@example.com"
+  
+  # 仪表板配置
+  dashboard:
+    # Grafana配置
+    grafana:
+      enabled: true
+      url: "http://monitoring:3000"
+      username: "admin"
+      password: ${GRAFANA_PASSWORD}
+    
+    # 自定义仪表板
+    custom_dashboards:
+      - name: "系统概览"
+        metrics:
+          - "system.cpu.usage"
+          - "system.memory.usage"
+          - "system.disk.usage"
+          - "application.response_time"
+          - "application.error_rate"
+      
+      - name: "安全监控"
+        metrics:
+          - "security.failed_logins"
+          - "security.suspicious_activities"
+          - "security.vulnerabilities"
+          - "application.unauthorized_requests"
+          - "network.blocked_ips"
+      
+      - name: "性能监控"
+        metrics:
+          - "database.connection_pool"
+          - "database.query_time"
+          - "redis.memory_usage"
+          - "nginx.request_rate"
+          - "application.throughput"
+  
+  # 通知模板
+  templates:
+    # 邮件模板
+    email:
+      subject_prefix: "[PythonCode Monitor] "
+      
+      # 严重告警
+      critical:
+        subject: "严重告警: {alert_name}"
+        body: |
+          严重告警触发!
+          
+          告警名称: {alert_name}
+          告警级别: {severity}
+          触发时间: {timestamp}
+          监控目标: {target}
+          当前值: {current_value}
+          阈值: {threshold}
+          
+          详细信息:
+          {details}
+          
+          请立即处理!
+      
+      # 警告告警
+      warning:
+        subject: "警告: {alert_name}"
+        body: |
+          警告告警触发!
+          
+          告警名称: {alert_name}
+          告警级别: {severity}
+          触发时间: {timestamp}
+          监控目标: {target}
+          当前值: {current_value}
+          阈值: {threshold}
+          
+          详细信息:
+          {details}
+          
+          请及时处理。
+      
+      # 信息通知
+      info:
+        subject: "信息: {alert_name}"
+        body: |
+          信息通知:
+          
+          通知名称: {alert_name}
+          通知时间: {timestamp}
+          监控目标: {target}
+          详细信息: {details}
+    
+    # Slack模板
+    slack:
+      critical:
+        color: "#FF0000"
+        message: "🚨 *严重告警*: {alert_name}\n• 目标: {target}\n• 当前值: {current_value}\n• 阈值: {threshold}\n• 时间: {timestamp}"
+      
+      warning:
+        color: "#FFA500"
+        message: "⚠️ *警告*: {alert_name}\n• 目标: {target}\n• 当前值: {current_value}\n• 阈值: {threshold}\n• 时间: {timestamp}"
+      
+      info:
+        color: "#00FF00"
+        message: "ℹ️ *信息*: {alert_name}\n• 目标: {target}\n• 详细信息: {details}"
+  
+  # 历史数据保留
+  retention:
+    metrics: 30    # 指标数据保留天数
+    logs: 90       # 日志数据保留天数
+    alerts: 180    # 告警记录保留天数
+    reports: 365   # 报告保留天数
+  
+  # 性能优化
+  performance:
+    max_workers: 4           # 最大工作线程数
+    batch_size: 1000         # 批量处理大小
+    buffer_size: 10000       # 缓冲区大小
+    flush_interval: 60       # 刷新间隔（秒）

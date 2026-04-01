@@ -1,0 +1,119 @@
+[
+  {
+    "timestamp": "2026-03-16T14:42:13.075337",
+    "metrics": {
+      "timestamp": "2026-03-16T14:42:05.627344",
+      "system": {
+        "cpu_percent": 48.6,
+        "memory_percent": 73.3,
+        "memory_used_gb": 8.673179626464844,
+        "memory_total_gb": 11.836315155029297,
+        "disk_percent": 4.1,
+        "disk_used_gb": 30.096752166748047,
+        "disk_total_gb": 730.2656211853027,
+        "net_bytes_sent": 301075114,
+        "net_bytes_recv": 4718972141,
+        "top_processes": [
+          {
+            "cpu_percent": 0.0,
+            "pid": 0,
+            "name": "System Idle Process",
+            "memory_percent": 6.445751427975657e-05
+          },
+          {
+            "cpu_percent": 0.0,
+            "pid": 4,
+            "name": "System",
+            "memory_percent": 0.02633089458328056
+          },
+          {
+            "cpu_percent": 0.0,
+            "pid": 96,
+            "name": "Registry",
+            "memory_percent": 0.3481028058678253
+          },
+          {
+            "cpu_percent": 0.0,
+            "pid": 512,
+            "name": "aesm_service.exe",
+            "memory_percent": 0.07667221323577043
+          },
+          {
+            "cpu_percent": 0.0,
+            "pid": 544,
+            "name": "winlogon.exe",
+            "memory_percent": 0.0651665469368339
+          },
+          {
+            "cpu_percent": 0.0,
+            "pid": 556,
+            "name": "conhost.exe",
+            "memory_percent": 0.12646564301688237
+          },
+          {
+            "cpu_percent": 0.0,
+            "pid": 572,
+            "name": "msedgewebview2.exe",
+            "memory_percent": 0.06059006342297118
+          },
+          {
+            "cpu_percent": 0.0,
+            "pid": 696,
+            "name": "smss.exe",
+            "memory_percent": 0.0029005881425890456
+          },
+          {
+            "cpu_percent": 0.0,
+            "pid": 788,
+            "name": "csrss.exe",
+            "memory_percent": 0.03464591392536916
+          },
+          {
+            "cpu_percent": 0.0,
+            "pid": 876,
+            "name": "csrss.exe",
+            "memory_percent": 0.042928704510317876
+          }
+        ]
+      },
+      "application": {},
+      "security": {}
+    },
+    "health": {
+      "timestamp": "2026-03-16T14:42:08.925448",
+      "status": "unreachable",
+      "checks": [
+        {
+          "name": "api_health",
+          "status": "unreachable",
+          "error": "HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/health (Caused by NewConnectionError(\"HTTPConnection(host='localhost', port=5000): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。\"))"
+        },
+        {
+          "name": "database",
+          "status": "unhealthy",
+          "error": "No module named 'psycopg2'"
+        },
+        {
+          "name": "redis",
+          "status": "skipped",
+          "message": "Redis检查已跳过"
+        },
+        {
+          "name": "redis",
+          "status": "healthy"
+        }
+      ]
+    },
+    "security": {
+      "timestamp": "2026-03-16T14:42:13.073632",
+      "checks": [
+        {
+          "name": "file_permissions",
+          "insecure_files": []
+        }
+      ],
+      "alerts": []
+    },
+    "alerts": []
+  }
+]

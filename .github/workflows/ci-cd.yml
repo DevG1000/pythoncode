@@ -1,0 +1,694 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.json'
+      - '**/*.yml'
+      - '**/*.yaml'
+      - '**/.gitignore'
+      - '**/.dockerignore'
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  # 安全审计
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Run security audit
+        run: |
+          python scripts/security_audit_simple.py --format json --output security-audit-report.json
+          
+      - name: Upload security audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit-report
+          path: security-audit-report.json
+          
+      - name: Check security audit results
+        run: |
+          if [ -f security-audit-report.json ]; then
+            python -c "
+            import json
+            with open('security-audit-report.json', 'r') as f:
+              report = json.load(f)
+            
+            critical_failed = report['summary']['critical_failed']
+            high_failed = report['summary']['high_failed']
+            
+            print(f'Total checks: {report[\"total_checks\"]}')
+            print(f'Passed: {report[\"passed_checks\"]}')
+            print(f'Failed: {report[\"failed_checks\']}')
+            print(f'Warnings: {report[\"warning_checks\"]}')
+            print(f'Critical failures: {critical_failed}')
+            print(f'High failures: {high_failed}')
+            
+            if critical_failed > 0:
+              print('ERROR: Critical security checks failed!')
+              print('Failed critical checks:')
+              for check in report['checks']:
+                if check['severity'] == 'critical' and check['status'] == 'failed':
+                  print(f'  - {check[\"id\"]}: {check[\"message\"]}')
+              exit(1)
+            elif high_failed > 0:
+              print('WARNING: High severity security checks failed')
+              print('Failed high severity checks:')
+              for check in report['checks']:
+                if check['severity'] == 'high' and check['status'] == 'failed':
+                  print(f'  - {check[\"id\"]}: {check[\"message\"]}')
+              exit(0)
+            else:
+              print('Security audit passed')
+              exit(0)
+            "
+          else
+            echo 'Security audit report not found'
+            exit(1)
+          fi
+
+  # 代码质量检查
+  lint-and-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort mypy pytest pytest-cov pylint bandit radon
+          pip install -r requirements.txt
+
+      - name: Check code formatting with black
+        run: |
+          black --check --diff .
+
+      - name: Check import sorting with isort
+        run: |
+          isort --check-only --diff .
+
+      - name: Lint with flake8
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Type checking with mypy
+        run: |
+          mypy --ignore-missing-imports .
+
+      - name: Run pylint for code quality scoring
+        run: |
+          python -m pylint api/ command_system/ card_generator/ --exit-zero --output-format=text | tee pylint-report.txt
+          
+      - name: Calculate code quality score
+        run: |
+          echo "Calculating code quality metrics..."
+          python -c "
+          import re
+          
+          # Read pylint output
+          try:
+              with open('pylint-report.txt', 'r') as f:
+                  content = f.read()
+              
+              # Extract score from pylint output
+              score_match = re.search(r'Your code has been rated at (\d+\.\d+)/10', content)
+              if score_match:
+                  score = float(score_match.group(1))
+                  print(f'Pylint Score: {score}/10')
+                  
+                  # Quality gate: minimum score 7.0
+                  if score >= 7.0:
+                      print('✅ Code quality PASSED')
+                      exit(0)
+                  else:
+                      print(f'❌ Code quality FAILED: Score {score} is below minimum 7.0')
+                      exit(1)
+              else:
+                  print('⚠️ Could not extract pylint score')
+                  exit(0)
+          except Exception as e:
+              print(f'Error calculating quality score: {e}')
+              exit(0)
+          "
+          
+      - name: Run bandit for security scanning
+        run: |
+          bandit -r api/ command_system/ card_generator/ -f json -o bandit-report.json || true
+          
+      - name: Check bandit results
+        run: |
+          echo "Checking security scan results..."
+          python -c "
+          import json
+          import os
+          
+          if os.path.exists('bandit-report.json'):
+              with open('bandit-report.json', 'r') as f:
+                  report = json.load(f)
+              
+              metrics = report.get('metrics', {})
+              total_issues = metrics.get('_totals', {}).get('SEVERITY', {}).get('HIGH', 0)
+              
+              print(f'Security issues found: {total_issues}')
+              
+              # Quality gate: no high severity issues
+              if total_issues == 0:
+                  print('✅ Security scan PASSED')
+                  exit(0)
+              else:
+                  print(f'❌ Security scan FAILED: {total_issues} high severity issues found')
+                  exit(1)
+          else:
+              print('⚠️ Bandit report not found')
+              exit(0)
+          "
+          
+      - name: Calculate code complexity with radon
+        run: |
+          echo "Calculating code complexity..."
+          python -m radon cc api/ command_system/ card_generator/ -s -a | tee radon-report.txt
+          
+      - name: Check complexity metrics
+        run: |
+          echo "Checking complexity metrics..."
+          python -c "
+          import re
+          
+          try:
+              with open('radon-report.txt', 'r') as f:
+                  content = f.read()
+              
+              # Extract complexity information
+              lines = content.split('\\n')
+              
+              # Count complexity categories
+              a_count = 0  # A - simple
+              b_count = 0  # B - moderately complex
+              c_count = 0  # C - complex
+              d_count = 0  # D - very complex
+              e_count = 0  # E - extremely complex
+              f_count = 0  # F - unmaintainable
+              
+              for line in lines:
+                  if ' - ' in line and '(' in line:
+                      # Extract complexity grade
+                      grade_match = re.search(r'([A-F]) - ', line)
+                      if grade_match:
+                          grade = grade_match.group(1)
+                          if grade == 'A':
+                              a_count += 1
+                          elif grade == 'B':
+                              b_count += 1
+                          elif grade == 'C':
+                              c_count += 1
+                          elif grade == 'D':
+                              d_count += 1
+                          elif grade == 'E':
+                              e_count += 1
+                          elif grade == 'F':
+                              f_count += 1
+              
+              total = a_count + b_count + c_count + d_count + e_count + f_count
+              
+              if total > 0:
+                  # Calculate maintainability index
+                  maintainable = a_count + b_count
+                  complex = c_count + d_count + e_count + f_count
+                  maintainability_ratio = maintainable / total if total > 0 else 1.0
+                  
+                  print(f'Complexity Analysis:')
+                  print(f'  A (Simple): {a_count}')
+                  print(f'  B (Moderate): {b_count}')
+                  print(f'  C (Complex): {c_count}')
+                  print(f'  D (Very Complex): {d_count}')
+                  print(f'  E (Extremely Complex): {e_count}')
+                  print(f'  F (Unmaintainable): {f_count}')
+                  print(f'  Total functions/methods: {total}')
+                  print(f'  Maintainability ratio: {maintainability_ratio:.2%}')
+                  
+                  # Quality gate: no F grade functions and maintainability ratio > 70%
+                  if f_count == 0 and maintainability_ratio >= 0.7:
+                      print('✅ Complexity check PASSED')
+                      exit(0)
+                  else:
+                      if f_count > 0:
+                          print(f'❌ Complexity check FAILED: {f_count} unmaintainable functions found')
+                      if maintainability_ratio < 0.7:
+                          print(f'❌ Complexity check FAILED: Maintainability ratio {maintainability_ratio:.2%} is below 70%')
+                      exit(1)
+              else:
+                  print('⚠️ No complexity data found')
+                  exit(0)
+                  
+          except Exception as e:
+              print(f'Error checking complexity: {e}')
+              exit(0)
+          "
+
+  # 质量门禁汇总
+  quality-gates:
+    runs-on: ubuntu-latest
+    needs: [security-audit, lint-and-format]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          pip install -r requirements.txt
+
+      - name: Run comprehensive quality assessment
+        run: |
+          echo "Running comprehensive quality assessment..."
+          python scripts/check_design_principles.py --output quality-report.json
+          
+      - name: Generate quality report
+        run: |
+          echo "Generating quality report..."
+          python -c "
+          import json
+          import os
+          
+          if os.path.exists('quality-report.json'):
+              with open('quality-report.json', 'r') as f:
+                  report = json.load(f)
+              
+              print('=' * 60)
+              print('QUALITY GATES SUMMARY')
+              print('=' * 60)
+              
+              # Extract scores
+              srp_score = report.get('srp_score', 0)
+              ocp_score = report.get('ocp_score', 0)
+              lsp_score = report.get('lsp_score', 0)
+              isp_score = report.get('isp_score', 0)
+              dip_score = report.get('dip_score', 0)
+              total_score = report.get('total_score', 0)
+              
+              print(f'\\nSOLID Principles Assessment:')
+              print(f'  SRP (Single Responsibility): {srp_score}/20')
+              print(f'  OCP (Open/Closed): {ocp_score}/20')
+              print(f'  LSP (Liskov Substitution): {lsp_score}/20')
+              print(f'  ISP (Interface Segregation): {isp_score}/20')
+              print(f'  DIP (Dependency Inversion): {dip_score}/20')
+              print(f'  TOTAL SCORE: {total_score}/100')
+              
+              # Calculate grade
+              if total_score >= 80:
+                  grade = 'A'
+              elif total_score >= 70:
+                  grade = 'B'
+              elif total_score >= 60:
+                  grade = 'C'
+              elif total_score >= 50:
+                  grade = 'D'
+              else:
+                  grade = 'F'
+              
+              print(f'  GRADE: {grade}')
+              
+              # Quality gates
+              print(f'\\nQUALITY GATES:')
+              all_passed = True
+              
+              # Gate 1: Total score >= 60
+              if total_score >= 60:
+                  print(f'  ✅ Gate 1: SOLID principles score >= 60/100')
+              else:
+                  print(f'  ❌ Gate 1: SOLID principles score {total_score}/100 < 60')
+                  all_passed = False
+              
+              # Gate 2: No principle below 10/20
+              principles = {
+                  'SRP': srp_score,
+                  'OCP': ocp_score,
+                  'LSP': lsp_score,
+                  'ISP': isp_score,
+                  'DIP': dip_score
+              }
+              
+              failed_principles = []
+              for principle, score in principles.items():
+                  if score < 10:
+                      failed_principles.append(principle)
+              
+              if not failed_principles:
+                  print(f'  ✅ Gate 2: All principles >= 10/20')
+              else:
+                  print(f'  ❌ Gate 2: Principles below 10/20: {', '.join(failed_principles)}')
+                  all_passed = False
+              
+              # Gate 3: SRP and DIP >= 12/20 (most critical)
+              if srp_score >= 12 and dip_score >= 12:
+                  print(f'  ✅ Gate 3: SRP and DIP >= 12/20')
+              else:
+                  if srp_score < 12:
+                      print(f'  ❌ Gate 3: SRP score {srp_score}/20 < 12')
+                  if dip_score < 12:
+                      print(f'  ❌ Gate 3: DIP score {dip_score}/20 < 12')
+                  all_passed = False
+              
+              print(f'\\nOVERALL STATUS: {'✅ ALL GATES PASSED' if all_passed else '❌ SOME GATES FAILED'}')
+              
+              # Exit with appropriate code
+              if not all_passed:
+                  exit(1)
+          else:
+              print('Quality report not found')
+              exit(1)
+          "
+          
+      - name: Upload quality report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-gates-report
+          path: quality-report.json
+
+  # 单元测试
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: [security-audit, lint-and-format, quality-gates]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/ -v --cov=api --cov=command_system --cov=card_generator --cov=utils --cov-report=xml --cov-report=html
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  # 集成测试
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [unit-tests, quality-gates]
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest requests
+
+      - name: Run integration tests
+        env:
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          FLASK_ENV: testing
+        run: |
+          # 启动Flask应用进行API测试
+          python api/app.py &
+          sleep 5
+          python -m pytest tests/api/test_app.py -v
+
+  # Docker构建和测试
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./config/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ github.repository }}:latest
+            ${{ github.repository }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          docker build -f ./config/Dockerfile -t pythoncode-test .
+          docker run --rm pythoncode-test python --version
+          docker run --rm pythoncode-test pip list | grep -E "(Flask|pytest|redis)"
+
+  # Docker Compose测试
+  docker-compose-test:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+
+      - name: Test Docker Compose
+        run: |
+          cd config
+          docker-compose up -d api
+          sleep 10
+          docker-compose ps
+          docker-compose logs api
+          curl -f http://localhost:5000/api/health || true
+          docker-compose down
+
+  # 安全扫描
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: docker-compose-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Dependency vulnerability check
+        run: |
+          pip install safety
+          safety check -r requirements.txt --full-report
+
+      - name: Run custom security audit
+        run: |
+          pip install pyyaml
+          python scripts/security_audit_simple.py --format json --output security-audit-report.json
+          
+      - name: Upload security audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit-report
+          path: security-audit-report.json
+          
+      - name: Check security audit results
+        run: |
+          if [ -f security-audit-report.json ]; then
+            python -c "
+            import json
+            with open('security-audit-report.json', 'r') as f:
+              report = json.load(f)
+            
+            critical_failed = report['summary']['critical_failed']
+            high_failed = report['summary']['high_failed']
+            
+            print(f'Critical failures: {critical_failed}')
+            print(f'High failures: {high_failed}')
+            
+            if critical_failed > 0:
+              print('ERROR: Critical security checks failed!')
+              exit(1)
+            elif high_failed > 0:
+              print('WARNING: High severity security checks failed')
+              exit(0)
+            else:
+              print('Security audit passed')
+              exit(0)
+            "
+          else
+            echo 'Security audit report not found'
+            exit(1)
+          fi
+
+  # 部署到测试环境
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: security-scan
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_USER: ${{ secrets.STAGING_USER }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ${STAGING_USER}@${STAGING_HOST} "
+            cd /opt/pythoncode &&
+            git pull origin develop &&
+            cd config &&
+            docker-compose down &&
+            docker-compose pull &&
+            docker-compose up -d
+          "
+
+  # 部署到生产环境
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to production
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ${PRODUCTION_USER}@${PRODUCTION_HOST} "
+            cd /opt/pythoncode &&
+            git pull origin main &&
+            cd config &&
+            docker-compose down &&
+            docker-compose pull &&
+            docker-compose up -d --build
+          "
+
+  # 通知
+  notify:
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+    steps:
+      - name: Send Slack notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#ci-cd'
+          username: 'CI/CD Bot'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Send email notification on failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: 'CI/CD Pipeline Failed: ${{ github.repository }}'
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: CI/CD Bot <ci-cd@example.com>
+          body: |
+            CI/CD Pipeline failed for repository: ${{ github.repository }}
+            
+            Workflow: ${{ github.workflow }}
+            Run ID: ${{ github.run_id }}
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref }}
+            
+            View details: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            
+            Failed jobs:
+            ${{ toJson(needs) }}

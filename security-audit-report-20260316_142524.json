@@ -1,0 +1,208 @@
+{
+  "timestamp": "2026-03-16T14:25:24.793303",
+  "environment": "unknown",
+  "total_checks": 7,
+  "passed_checks": 1,
+  "failed_checks": 2,
+  "warning_checks": 4,
+  "skipped_checks": 0,
+  "checks": [
+    {
+      "id": "env-001",
+      "description": "检查环境变量配置",
+      "check": "检查FLASK_ENV是否为production",
+      "required": true,
+      "severity": "critical",
+      "status": "failed",
+      "message": "运行环境应为production，当前为: development",
+      "details": {}
+    },
+    {
+      "id": "env-002",
+      "description": "检查硬编码密钥",
+      "check": "检查.env文件中是否有硬编码的密钥",
+      "required": true,
+      "severity": "critical",
+      "status": "failed",
+      "message": "发现硬编码密钥: SECRET_KEY=${SECRET_K..., PASSWORD=${MAIL_PAS...",
+      "details": {
+        "hardcoded_keys": [
+          "SECRET_KEY=${SECRET_K...",
+          "PASSWORD=${MAIL_PAS..."
+        ]
+      }
+    },
+    {
+      "id": "app-001",
+      "description": "检查应用安全配置",
+      "check": "检查Flask安全配置",
+      "required": true,
+      "severity": "high",
+      "status": "warning",
+      "message": "无法导入Config模块",
+      "details": {}
+    },
+    {
+      "id": "data-001",
+      "description": "检查数据库安全",
+      "check": "检查数据库连接是否使用SSL",
+      "required": true,
+      "severity": "high",
+      "status": "warning",
+      "message": "未配置DATABASE_URL环境变量",
+      "details": {}
+    },
+    {
+      "id": "net-001",
+      "description": "检查网络端口",
+      "check": "检查开放端口配置",
+      "required": false,
+      "severity": "medium",
+      "status": "warning",
+      "message": "发现可疑开放端口: 135, 445, 5040, 7680, 18454, 19022, 49664, 49665, 49666, 49667, 49668, 49698, 139, 139, 4649, 5284, 10000, 12900, 20017, 30772, 36725, 50245, 50477, 52483, 54530, 54533, 54630, 54631, 56630, 57101, 57630, 58457, 58630, 135, 445, 7680, 49664, 49665, 49666, 49667, 49668, 49698, 42050",
+      "details": {
+        "listening_ports": [
+          "135",
+          "445",
+          "5040",
+          "7680",
+          "18454",
+          "19022",
+          "49664",
+          "49665",
+          "49666",
+          "49667",
+          "49668",
+          "49698",
+          "139",
+          "139",
+          "4649",
+          "5284",
+          "10000",
+          "12900",
+          "20017",
+          "30772",
+          "36725",
+          "50245",
+          "50477",
+          "52483",
+          "54530",
+          "54533",
+          "54630",
+          "54631",
+          "56630",
+          "57101",
+          "57630",
+          "58457",
+          "58630",
+          "135",
+          "445",
+          "7680",
+          "49664",
+          "49665",
+          "49666",
+          "49667",
+          "49668",
+          "49698",
+          "42050"
+        ],
+        "suspicious_ports": [
+          "135",
+          "445",
+          "5040",
+          "7680",
+          "18454",
+          "19022",
+          "49664",
+          "49665",
+          "49666",
+          "49667",
+          "49668",
+          "49698",
+          "139",
+          "139",
+          "4649",
+          "5284",
+          "10000",
+          "12900",
+          "20017",
+          "30772",
+          "36725",
+          "50245",
+          "50477",
+          "52483",
+          "54530",
+          "54533",
+          "54630",
+          "54631",
+          "56630",
+          "57101",
+          "57630",
+          "58457",
+          "58630",
+          "135",
+          "445",
+          "7680",
+          "49664",
+          "49665",
+          "49666",
+          "49667",
+          "49668",
+          "49698",
+          "42050"
+        ]
+      }
+    },
+    {
+      "id": "file-001",
+      "description": "检查文件权限",
+      "check": "检查关键文件权限",
+      "required": false,
+      "severity": "medium",
+      "status": "passed",
+      "message": "关键文件权限配置正确",
+      "details": {}
+    },
+    {
+      "id": "log-001",
+      "description": "检查日志配置",
+      "check": "检查日志目录和权限",
+      "required": false,
+      "severity": "low",
+      "status": "warning",
+      "message": "日志目录不存在",
+      "details": {}
+    }
+  ],
+  "summary": {
+    "overall_status": "CRITICAL_FAIL",
+    "pass_percentage": 14.285714285714285,
+    "severity_stats": {
+      "critical": {
+        "total": 2,
+        "passed": 0,
+        "passed_percentage": 0.0
+      },
+      "high": {
+        "total": 2,
+        "passed": 0,
+        "passed_percentage": 0.0
+      },
+      "medium": {
+        "total": 2,
+        "passed": 1,
+        "passed_percentage": 50.0
+      },
+      "low": {
+        "total": 1,
+        "passed": 0,
+        "passed_percentage": 0.0
+      }
+    },
+    "critical_failed": 2,
+    "high_failed": 0
+  },
+  "recommendations": [
+    "立即修复所有CRITICAL级别的失败检查"
+  ]
+}

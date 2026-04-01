@@ -1,0 +1,222 @@
+# 安全配置检查清单
+# 用于部署前的安全配置验证
+
+version: "1.0"
+last_updated: "2025-03-13"
+environment: "production"
+
+checks:
+  # 1. 身份认证和授权
+  authentication:
+    - id: auth-001
+      description: "密码策略配置"
+      check: "验证密码最小长度为12字符"
+      command: "检查应用配置中的PASSWORD_MIN_LENGTH"
+      required: true
+      severity: "high"
+      
+    - id: auth-002
+      description: "会话超时设置"
+      check: "验证会话超时时间≤15分钟"
+      command: "检查SESSION_TIMEOUT配置"
+      required: true
+      severity: "high"
+      
+    - id: auth-003
+      description: "管理员MFA启用"
+      check: "验证所有管理员账户已启用MFA"
+      command: "查询数据库中的admin_users表"
+      required: true
+      severity: "critical"
+
+  # 2. 数据安全
+  data_security:
+    - id: data-001
+      description: "数据库加密配置"
+      check: "验证数据库连接使用SSL"
+      command: "检查DATABASE_URL是否包含ssl=true"
+      required: true
+      severity: "high"
+      
+    - id: data-002
+      description: "敏感数据脱敏"
+      check: "验证日志中不包含敏感信息"
+      command: "检查日志配置文件"
+      required: true
+      severity: "medium"
+      
+    - id: data-003
+      description: "密钥管理"
+      check: "验证密钥存储在环境变量中"
+      command: "检查.env文件是否包含硬编码密钥"
+      required: true
+      severity: "critical"
+
+  # 3. 应用安全
+  application_security:
+    - id: app-001
+      description: "输入验证配置"
+      check: "验证所有API端点有输入验证"
+      command: "检查API路由定义"
+      required: true
+      severity: "high"
+      
+    - id: app-002
+      description: "CORS配置"
+      check: "验证CORS仅允许信任的域名"
+      command: "检查CORS_ORIGINS配置"
+      required: true
+      severity: "medium"
+      
+    - id: app-003
+      description: "错误处理配置"
+      check: "验证错误页面不泄露堆栈信息"
+      command: "检查FLASK_ENV是否为production"
+      required: true
+      severity: "medium"
+
+  # 4. 网络安全
+  network_security:
+    - id: net-001
+      description: "防火墙规则"
+      check: "验证仅开放必要的端口"
+      command: "netstat -tulpn | grep LISTEN"
+      required: true
+      severity: "high"
+      
+    - id: net-002
+      description: "TLS配置"
+      check: "验证TLS版本为1.3"
+      command: "openssl s_client -connect localhost:443 -tls1_3"
+      required: true
+      severity: "high"
+      
+    - id: net-003
+      description: "速率限制配置"
+      check: "验证API速率限制已启用"
+      command: "检查RATE_LIMIT配置"
+      required: true
+      severity: "medium"
+
+  # 5. 容器安全
+  container_security:
+    - id: container-001
+      description: "非root用户运行"
+      check: "验证容器以非root用户运行"
+      command: "docker inspect --format='{{.Config.User}}' <container>"
+      required: true
+      severity: "high"
+      
+    - id: container-002
+      description: "资源限制"
+      check: "验证容器有CPU和内存限制"
+      command: "docker inspect --format='{{.HostConfig}}' <container>"
+      required: true
+      severity: "medium"
+      
+    - id: container-003
+      description: "镜像漏洞扫描"
+      check: "验证容器镜像无已知漏洞"
+      command: "trivy image <image_name>"
+      required: true
+      severity: "high"
+
+  # 6. 监控和审计
+  monitoring:
+    - id: monitor-001
+      description: "安全日志配置"
+      check: "验证安全日志已启用"
+      command: "检查日志目录和文件权限"
+      required: true
+      severity: "medium"
+      
+    - id: monitor-002
+      description: "审计日志记录"
+      check: "验证敏感操作有审计日志"
+      command: "检查审计日志配置"
+      required: true
+      severity: "high"
+      
+    - id: monitor-003
+      description: "监控告警配置"
+      check: "验证安全告警已配置"
+      command: "检查监控系统配置"
+      required: true
+      severity: "medium"
+
+  # 7. 合规性检查
+  compliance:
+    - id: comp-001
+      description: "数据保留策略"
+      check: "验证数据保留策略符合法规"
+      command: "检查数据保留配置"
+      required: true
+      severity: "high"
+      
+    - id: comp-002
+      description: "隐私政策"
+      check: "验证隐私政策已更新"
+      command: "检查隐私政策文档版本"
+      required: true
+      severity: "medium"
+      
+    - id: comp-003
+      description: "用户同意管理"
+      check: "验证用户同意记录"
+      command: "检查用户同意表"
+      required: true
+      severity: "high"
+
+# 检查脚本
+scripts:
+  run_all_checks:
+    description: "运行所有安全检查"
+    command: |
+      python -m security.checklist --all
+      
+  run_critical_checks:
+    description: "仅运行关键安全检查"
+    command: |
+      python -m security.checklist --severity critical
+      
+  generate_report:
+    description: "生成安全检查报告"
+    command: |
+      python -m security.checklist --report security-report-$(date +%Y%m%d).pdf
+
+# 通过标准
+passing_criteria:
+  critical_checks: "必须100%通过"
+  high_checks: "必须≥95%通过"
+  medium_checks: "必须≥90%通过"
+  low_checks: "必须≥85%通过"
+
+# 失败处理
+failure_actions:
+  - action: "立即停止部署"
+    condition: "任何critical检查失败"
+    
+  - action: "24小时内修复"
+    condition: "任何high检查失败"
+    
+  - action: "下一版本修复"
+    condition: "medium检查失败超过阈值"
+    
+  - action: "记录并监控"
+    condition: "low检查失败"
+
+# 报告模板
+report_template:
+  header: "安全配置检查报告"
+  sections:
+    - "执行摘要"
+    - "检查结果统计"
+    - "失败项目详情"
+    - "修复建议"
+    - "风险评估"
+    - "批准签名"
+    
+  required_signatures:
+    - "安全负责人"
+    - "运维负责人"
+    - "产品负责人"

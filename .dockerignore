@@ -1,0 +1,88 @@
+# Docker忽略文件
+# 排除不需要复制到Docker镜像中的文件和目录
+
+# Git相关
+.git/
+.gitignore
+.gitattributes
+
+# 开发环境
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python缓存和虚拟环境
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+env/
+ENV/
+
+# 测试相关
+.coverage
+htmlcov/
+.pytest_cache/
+test_*.py
+
+# 日志文件
+*.log
+logs/
+
+# 数据文件（通过卷挂载）
+instance/
+data/
+output.xlsx
+
+# 构建产物
+dist/
+build/
+*.egg-info/
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 文档（可选，如果需要可以包含）
+# README*.md
+# LICENSE
+
+# 配置文件（通过环境变量配置）
+.env
+.env.example
+
+# Docker相关
+Dockerfile
+docker-compose.yml
+.dockerignore
+build-docker.*
+docker-run.*
+
+# 临时文件
+tmp/
+temp/
+
+# 特定排除
+api-key.rtf
+session-*.md
+performance_report.md
+performance_summary.md
+
+# 保留以下文件（需要包含在镜像中）
+# !requirements.txt
+# !app.py
+# !Line2Card.py
+# !cmd_agent.py
+# !config.py
+# !models.py
+# !email_service.py
+# !async_tasks.py
+# !memory_manager.py
+# !command_executor.py
+# !cmd_tasks.py
+# !string_utils.py
+# !performance_analysis.py

@@ -1,0 +1,52 @@
+version: 2
+updates:
+  # Python依赖更新
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    reviewers:
+      - "maintainers"
+    assignees:
+      - "devops"
+
+  # Docker依赖更新
+  - package-ecosystem: "docker"
+    directory: "/config"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+    reviewers:
+      - "maintainers"
+    assignees:
+      - "devops"
+
+  # GitHub Actions更新
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "first monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    reviewers:
+      - "maintainers"
+    assignees:
+      - "devops"

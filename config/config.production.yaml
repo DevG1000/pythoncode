@@ -1,0 +1,67 @@
+# Production Configuration
+# This file contains production-specific settings.
+# DO NOT commit secrets to this file. Use environment variables or secrets.yaml.
+
+app:
+  environment: "production"
+  debug: false
+  # secret_key should be set via environment variable SECRET_KEY
+
+database:
+  # Production database URL should be set via environment variable DATABASE_URL
+  # Example: postgresql://user:password@localhost/dbname
+  url: "postgresql://user:password@localhost/pythoncode"
+  pool_size: 20
+  max_overflow: 40
+  pool_recycle: 1800
+  echo: false
+
+email:
+  # Email credentials should be set via environment variables
+  server: "smtp.gmail.com"
+  port: 587
+  use_tls: true
+
+command_system:
+  timeout: 30
+  max_workers: 10
+  max_queue_size: 200
+  enable_validation: true
+  log_level: "WARNING"
+  enable_monitoring: true
+  monitor_interval: 30
+
+logging:
+  level: "WARNING"
+  file: "/var/log/pythoncode/app.log"
+  max_size_mb: 100
+  backup_count: 10
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 8
+  cors_origins:
+    - "https://yourdomain.com"
+    - "https://www.yourdomain.com"
+  rate_limit: "1000 per minute"
+  enable_swagger: false
+
+cache:
+  type: "redis"
+  redis_url: "redis://redis:6379/0"
+  default_timeout: 600
+
+performance:
+  max_request_size_mb: 32
+  request_timeout_seconds: 60
+  enable_compression: true
+  enable_caching: true
+  cache_ttl_seconds: 600
+
+security:
+  enable_cors: true
+  enable_rate_limiting: true
+  enable_input_sanitization: true
+  enable_output_encoding: true
+  max_file_size_mb: 20

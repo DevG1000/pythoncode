@@ -1,0 +1,100 @@
+# PythonCode Configuration
+# This is the base configuration file. Environment-specific overrides
+# should be placed in config.local.yaml or set via environment variables.
+
+app:
+  name: "PythonCode"
+  version: "1.0.0"
+  environment: "development"
+  debug: true
+  secret_key: "dev-secret-key-change-in-production"
+
+database:
+  url: "sqlite:///app.db"
+  pool_size: 10
+  max_overflow: 20
+  pool_recycle: 3600
+  echo: false
+
+email:
+  server: "smtp.gmail.com"
+  port: 587
+  use_tls: true
+  username: ""
+  password: ""
+  default_sender: ""
+  verification_token_expiry: 86400
+
+command_system:
+  timeout: 15
+  max_workers: 7
+  working_dir: "."
+  max_queue_size: 100
+  enable_validation: true
+  allowed_commands: []
+  denied_commands: []
+  log_level: "INFO"
+  log_file: ""
+  enable_monitoring: true
+  monitor_interval: 60
+
+card_generator:
+  default_template: "default"
+  output_format: "png"
+  output_quality: 95
+  max_image_width: 1200
+  max_image_height: 800
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: ""
+  max_size_mb: 10
+  backup_count: 5
+
+api:
+  host: "0.0.0.0"
+  port: 5000
+  workers: 4
+  cors_origins:
+    - "*"
+  rate_limit: "100 per minute"
+  enable_swagger: true
+
+cache:
+  type: "memory"
+  redis_url: "redis://localhost:6379/0"
+  default_timeout: 300
+
+# Feature flags
+features:
+  enable_email_verification: true
+  enable_command_system: true
+  enable_card_generator: true
+  enable_api_docs: true
+  enable_health_checks: true
+
+# Performance settings
+performance:
+  max_request_size_mb: 16
+  request_timeout_seconds: 30
+  enable_compression: true
+  enable_caching: true
+  cache_ttl_seconds: 300
+
+# Security settings
+security:
+  enable_cors: true
+  enable_rate_limiting: true
+  enable_input_sanitization: true
+  enable_output_encoding: true
+  allowed_file_extensions:
+    - ".txt"
+    - ".csv"
+    - ".xlsx"
+    - ".xls"
+    - ".png"
+    - ".jpg"
+    - ".jpeg"
+    - ".gif"
+  max_file_size_mb: 10

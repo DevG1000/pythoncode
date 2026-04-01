@@ -1,0 +1,15 @@
+
+# Security related
+.env
+*.key
+*.pem
+*.crt
+*.pfx
+secrets/
+credentials.json
+service-account-key.json
+*.backup
+*.backup.*
+# Logs (should be monitored but not committed)
+logs/*.log
+!logs/.gitkeep

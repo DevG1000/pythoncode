@@ -1,0 +1,42 @@
+# 安全监控容器
+FROM python:3.9-slim
+
+# 创建非root用户
+RUN groupadd -r security && useradd -r -g security security
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    curl \
+    net-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制依赖文件
+COPY requirements.txt .
+
+# 安装Python依赖
+RUN pip install --no-cache-dir -r requirements.txt pyyaml
+
+# 复制安全脚本和配置
+COPY scripts/security_monitor.py .
+COPY scripts/security_audit_simple.py .
+COPY scripts/security_fix.py .
+COPY scripts/simple_security_check.py .
+COPY config/security-monitor.yaml .
+COPY config/security-checklist.yaml .
+
+# 创建日志目录
+RUN mkdir -p /var/log/security && \
+    chown -R security:security /var/log/security
+
+# 切换到非root用户
+USER security
+
+# 设置环境变量
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# 启动安全监控
+CMD ["python", "security_monitor.py", "--config", "security-monitor.yaml"]

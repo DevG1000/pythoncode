@@ -1,0 +1,26 @@
+"""
+命令执行系统组件包
+包含CMD代理、命令执行器、命令任务和异步任务系统
+"""
+
+from .cmd_agent import CmdAgent
+from .command_executor import CommandExecutor, CommandResult, CommandStatus
+from cmd_tasks import CommandTask, create_command_task
+from .async_tasks import AsyncTaskManager, AsyncTask, TaskStatus, init_async_tasks, shutdown_async_tasks, get_async_stats, get_async_task_status, submit_command_task
+
+__all__ = [
+    'CmdAgent',
+    'CommandExecutor',
+    'CommandResult',
+    'CommandStatus',
+    'CommandTask',
+    'create_command_task',
+    'AsyncTaskManager',
+    'AsyncTask',
+    'TaskStatus',
+    'init_async_tasks',
+    'shutdown_async_tasks',
+    'get_async_stats',
+    'get_async_task_status',
+    'submit_command_task'
+]

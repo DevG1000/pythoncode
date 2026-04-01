@@ -1,0 +1,409 @@
+# 安全监控配置
+# 实时监控系统安全状态和异常行为
+
+version: "1.0"
+last_updated: "2025-03-13"
+
+# 监控配置
+monitoring:
+  # 日志监控
+  logs:
+    enabled: true
+    files:
+      - path: "logs/app.log"
+        patterns:
+          - "login failed"
+          - "authentication failed"
+          - "unauthorized"
+          - "permission denied"
+          
+      - path: "logs/access.log"
+        patterns:
+          - "POST /api/"
+          - "DELETE /api/"
+          - "status: 4[0-9][0-9]"
+          - "status: 5[0-9][0-9]"
+          
+      - path: "logs/error.log"
+        patterns:
+          - "exception"
+          - "error"
+          - "traceback"
+          - "critical"
+          
+      - path: "logs/security.log"
+        patterns: all
+    
+    scan_interval: 5  # 扫描间隔（秒）
+    retention_days: 30  # 日志保留天数
+  
+  # 指标监控
+  metrics:
+    enabled: true
+    collection_interval: 30  # 收集间隔（秒）
+    
+    cpu:
+      warning_threshold: 80  # 警告阈值（%）
+      critical_threshold: 90  # 严重阈值（%）
+      
+    memory:
+      warning_threshold: 85
+      critical_threshold: 95
+      
+    disk:
+      warning_threshold: 85
+      critical_threshold: 95
+      
+    network:
+      max_connections: 1000
+      connection_rate_limit: 100  # 每秒最大连接数
+  
+  # 安全事件监控
+  security_events:
+    enabled: true
+    event_types:
+      - "login_failure"
+      - "brute_force"
+      - "sql_injection"
+      - "xss_attempt"
+      - "csrf_attempt"
+      - "file_upload"
+      - "command_injection"
+      - "path_traversal"
+      
+    detection_rules:
+      - name: "频繁登录失败"
+        type: "login_failure"
+        threshold: 10  # 5分钟内失败次数
+        time_window: 300  # 时间窗口（秒）
+        severity: "high"
+        action: "block_ip"
+        
+      - name: "SQL注入尝试"
+        type: "sql_injection"
+        threshold: 1  # 任何尝试
+        time_window: 60
+        severity: "critical"
+        action: "immediate_response"
+        
+      - name: "异常文件上传"
+        type: "file_upload"
+        threshold: 5  # 5分钟内上传次数
+        time_window: 300
+        severity: "medium"
+        action: "alert_admin"
+
+# 告警规则
+alert_rules:
+  # 登录相关
+  - id: "alert-login-001"
+    name: "暴力破解尝试"
+    condition: "login_failures > 20 in 10 minutes from same IP"
+    severity: "high"
+    action: "block_ip"
+    cooldown: 600  # 冷却时间（秒）
+    notification:
+      email: true
+      slack: true
+      sms: false
+    
+  - id: "alert-login-002"
+    name: "异常地理位置登录"
+    condition: "login from new country within 1 hour"
+    severity: "medium"
+    action: "require_mfa"
+    cooldown: 3600
+    notification:
+      email: true
+      slack: false
+      sms: true
+  
+  # API相关
+  - id: "alert-api-001"
+    name: "API滥用"
+    condition: "api_calls > 1000 per minute from same IP"
+    severity: "high"
+    action: "rate_limit"
+    cooldown: 300
+    notification:
+      email: true
+      slack: true
+      sms: false
+    
+  - id: "alert-api-002"
+    name: "敏感API访问"
+    condition: "access to admin endpoints from non-admin IP"
+    severity: "critical"
+    action: "block_ip_and_alert"
+    cooldown: 0
+    notification:
+      email: true
+      slack: true
+      sms: true
+  
+  # 系统资源
+  - id: "alert-system-001"
+    name: "CPU过载"
+    condition: "cpu_usage > 90% for 5 minutes"
+    severity: "high"
+    action: "scale_up"
+    cooldown: 300
+    notification:
+      email: true
+      slack: true
+      sms: false
+    
+  - id: "alert-system-002"
+    name: "内存耗尽"
+    condition: "memory_usage > 95% for 2 minutes"
+    severity: "critical"
+    action: "restart_service"
+    cooldown: 0
+    notification:
+      email: true
+      slack: true
+      sms: true
+  
+  # 安全攻击
+  - id: "alert-security-001"
+    name: "DDoS攻击"
+    condition: "requests > 10000 per minute total"
+    severity: "critical"
+    action: "enable_waf"
+    cooldown: 0
+    notification:
+      email: true
+      slack: true
+      sms: true
+    
+  - id: "alert-security-002"
+    name: "数据泄露尝试"
+    condition: "mass_data_export detected"
+    severity: "critical"
+    action: "block_user_and_investigate"
+    cooldown: 0
+    notification:
+      email: true
+      slack: true
+      sms: true
+
+# 通知配置
+notifications:
+  email:
+    enabled: true
+    smtp_server: "${SMTP_SERVER}"
+    smtp_port: "${SMTP_PORT}"
+    smtp_user: "${SMTP_USER}"
+    smtp_password: "${SMTP_PASSWORD}"
+    from_address: "security@pythoncode.example.com"
+    recipients:
+      - "admin@pythoncode.example.com"
+      - "security-team@pythoncode.example.com"
+    
+  slack:
+    enabled: true
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#security-alerts"
+    username: "Security Monitor"
+    icon_emoji: ":warning:"
+    
+  sms:
+    enabled: false
+    provider: "twilio"
+    account_sid: "${TWILIO_ACCOUNT_SID}"
+    auth_token: "${TWILIO_AUTH_TOKEN}"
+    from_number: "${TWILIO_FROM_NUMBER}"
+    recipients:
+      - "+8612345678900"  # 安全负责人
+    
+  webhook:
+    enabled: true
+    endpoints:
+      - url: "https://internal-monitor.example.com/alerts"
+        headers:
+          Authorization: "Bearer ${INTERNAL_API_KEY}"
+      - url: "https://soc.example.com/incidents"
+        headers:
+          X-API-Key: "${SOC_API_KEY}"
+
+# 响应动作
+response_actions:
+  block_ip:
+    type: "firewall"
+    command: "iptables -A INPUT -s {ip} -j DROP"
+    duration: 3600  # 阻塞时间（秒）
+    auto_release: true
+    
+  rate_limit:
+    type: "nginx"
+    command: "limit_req zone=api burst=10 nodelay;"
+    duration: 300
+    
+  require_mfa:
+    type: "application"
+    command: "update user set require_mfa=true where id={user_id}"
+    notification: "请完成多因素认证以继续访问"
+    
+  scale_up:
+    type: "kubernetes"
+    command: "kubectl scale deployment api --replicas=3"
+    cooldown: 600
+    
+  restart_service:
+    type: "systemd"
+    command: "systemctl restart pythoncode-api"
+    max_restarts: 3
+    
+  enable_waf:
+    type: "cloudflare"
+    command: "设置WAF规则为'under attack'模式"
+    duration: 1800
+    
+  block_user_and_investigate:
+    type: "combined"
+    actions:
+      - "block_user"
+      - "create_incident"
+      - "notify_soc"
+
+# 报告配置
+reports:
+  hourly:
+    enabled: true
+    schedule: "0 * * * *"  # 每小时
+    format: "json"
+    retention: 7  # 保留天数
+    
+  daily:
+    enabled: true
+    schedule: "0 0 * * *"  # 每天午夜
+    format: "pdf"
+    retention: 30
+    
+  weekly:
+    enabled: true
+    schedule: "0 0 * * 0"  # 每周日
+    format: "pdf"
+    retention: 90
+    
+  monthly:
+    enabled: true
+    schedule: "0 0 1 * *"  # 每月1号
+    format: "pdf"
+    retention: 365
+
+# 数据保留
+data_retention:
+  events:
+    security: 365  # 安全事件保留天数
+    system: 180    # 系统事件保留天数
+    application: 90 # 应用事件保留天数
+    
+  metrics:
+    raw: 30        # 原始指标保留天数
+    aggregated: 365 # 聚合指标保留天数
+    
+  logs:
+    access: 30     # 访问日志保留天数
+    error: 90      # 错误日志保留天数
+    security: 365  # 安全日志保留天数
+    
+  reports:
+    hourly: 7      # 小时报告保留天数
+    daily: 30      # 日报保留天数
+    weekly: 90     # 周报保留天数
+    monthly: 365   # 月报保留天数
+
+# 集成配置
+integrations:
+  siem:
+    enabled: false
+    type: "splunk"
+    endpoint: "https://splunk.example.com:8088/services/collector"
+    token: "${SPLUNK_TOKEN}"
+    
+  ticketing:
+    enabled: true
+    type: "jira"
+    endpoint: "https://jira.example.com/rest/api/2/issue"
+    username: "${JIRA_USERNAME}"
+    password: "${JIRA_PASSWORD}"
+    project: "SEC"
+    issue_type: "Security Incident"
+    
+  threat_intelligence:
+    enabled: true
+    feeds:
+      - "alienvault"
+      - "virustotal"
+      - "abuseipdb"
+    update_interval: 3600  # 更新间隔（秒）
+
+# 高级配置
+advanced:
+  anomaly_detection:
+    enabled: true
+    algorithm: "isolation_forest"
+    training_period: 604800  # 训练周期（秒，7天）
+    sensitivity: 0.95        # 敏感度
+    
+  correlation:
+    enabled: true
+    rules:
+      - name: "多阶段攻击检测"
+        events: ["port_scan", "vulnerability_scan", "exploit_attempt"]
+        time_window: 3600
+        severity: "critical"
+        
+      - name: "内部威胁检测"
+        events: ["after_hours_access", "mass_download", "privilege_escalation"]
+        time_window: 86400
+        severity: "high"
+    
+  machine_learning:
+    enabled: false
+    models:
+      - name: "login_anomaly"
+        type: "lstm"
+        features: ["ip", "time", "user_agent", "success_rate"]
+        
+      - name: "traffic_anomaly"
+        type: "autoencoder"
+        features: ["requests_per_second", "response_time", "error_rate"]
+
+# 紧急联系人
+emergency_contacts:
+  - name: "安全负责人"
+    role: "Security Lead"
+    email: "security-lead@pythoncode.example.com"
+    phone: "+8612345678901"
+    available: "24/7"
+    
+  - name: "系统管理员"
+    role: "System Administrator"
+    email: "sysadmin@pythoncode.example.com"
+    phone: "+8612345678902"
+    available: "9:00-18:00 (UTC+8)"
+    
+  - name: "法律顾问"
+    role: "Legal Counsel"
+    email: "legal@pythoncode.example.com"
+    phone: "+8612345678903"
+    available: "9:00-18:00 (UTC+8)"
+
+# 合规性要求
+compliance:
+  gdpr:
+    enabled: true
+    data_protection_officer: "dpo@pythoncode.example.com"
+    breach_notification_period: 72  # 小时
+    
+  iso27001:
+    enabled: true
+    certification_id: "ISO27001-2023-001"
+    valid_until: "2025-12-31"
+    
+  soc2:
+    enabled: false
+    in_progress: true
+    target_date: "2025-06-30"

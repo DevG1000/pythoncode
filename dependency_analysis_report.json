@@ -1,0 +1,224 @@
+{
+  "project": "D:/pythoncode",
+  "metrics": {
+    "total_modules": 54,
+    "total_dependencies": 55,
+    "avg_dependencies_per_module": 1.0185185185185186,
+    "high_coupling_modules": [
+      [
+        "api.di_container",
+        12
+      ],
+      [
+        "scripts.security_audit",
+        8
+      ],
+      [
+        "scripts.security_audit_simple",
+        8
+      ],
+      [
+        "tests.command_system.test_cmd_agent",
+        19
+      ]
+    ],
+    "module_coupling": {
+      "check_design_principles": 0,
+      "dependency_analyzer": 0,
+      "simple_dependency_analyzer": 0,
+      "test_quality": 0,
+      "api.app": 1,
+      "api.config": 1,
+      "api.di_container": 12,
+      "api.email_service": 0,
+      "api.interfaces": 0,
+      "api.memory_manager": 0,
+      "api.models": 0,
+      "api.__init__": 1,
+      "card_generator.Line2Card": 0,
+      "card_generator.performance_analysis": 0,
+      "card_generator.__init__": 0,
+      "command_system.async_tasks": 1,
+      "command_system.cmd_agent": 0,
+      "command_system.cmd_agent_refactored": 0,
+      "command_system.cmd_tasks": 0,
+      "command_system.command_executor": 0,
+      "command_system.__init__": 0,
+      "command_system.cli.cmd_cli": 0,
+      "command_system.services.command_executor": 0,
+      "command_system.services.system_stats": 0,
+      "command_system.services.task_cleanup": 0,
+      "command_system.services.task_monitor": 0,
+      "config.__init__": 0,
+      "scripts.load_config": 0,
+      "scripts.monitor_system": 0,
+      "scripts.run_quality_checks": 0,
+      "scripts.security_audit": 8,
+      "scripts.security_audit_simple": 8,
+      "scripts.security_fix": 0,
+      "scripts.security_monitor": 0,
+      "scripts.setup_production": 0,
+      "scripts.setup_team_simple": 0,
+      "scripts.simple_security_check": 0,
+      "scripts.team_setup": 0,
+      "tests.conftest": 0,
+      "tests.quick_test": 0,
+      "tests.simple_test": 0,
+      "tests.__init__": 0,
+      "tests.api.test_app": 0,
+      "tests.api.__init__": 0,
+      "tests.card_generator.test_line2card": 0,
+      "tests.card_generator.__init__": 0,
+      "tests.command_system.test_cmd_agent": 19,
+      "tests.command_system.__init__": 0,
+      "tests.utils.test_string_utils": 4,
+      "tests.utils.__init__": 0,
+      "utils.deepseekeytest": 0,
+      "utils.redis_manager": 0,
+      "utils.string_utils": 0,
+      "utils.__init__": 0
+    }
+  },
+  "circular_dependencies": [],
+  "high_coupling_modules": [
+    [
+      "api.di_container",
+      12
+    ],
+    [
+      "scripts.security_audit",
+      8
+    ],
+    [
+      "scripts.security_audit_simple",
+      8
+    ],
+    [
+      "tests.command_system.test_cmd_agent",
+      19
+    ]
+  ],
+  "all_dependencies": {
+    "check_design_principles": [],
+    "dependency_analyzer": [],
+    "simple_dependency_analyzer": [],
+    "test_quality": [],
+    "api.app": [
+      "config.__init__"
+    ],
+    "api.config": [
+      "config.__init__"
+    ],
+    "api.di_container": [
+      "command_system.cli.cmd_cli",
+      "command_system.async_tasks",
+      "command_system.__init__",
+      "command_system.cmd_tasks",
+      "command_system.cmd_agent",
+      "command_system.command_executor",
+      "command_system.services.task_monitor",
+      "command_system.services.system_stats",
+      "command_system.cmd_agent_refactored",
+      "command_system.services.command_executor",
+      "config.__init__",
+      "command_system.services.task_cleanup"
+    ],
+    "api.email_service": [],
+    "api.interfaces": [],
+    "api.memory_manager": [],
+    "api.models": [],
+    "api.__init__": [
+      "config.__init__"
+    ],
+    "card_generator.Line2Card": [],
+    "card_generator.performance_analysis": [],
+    "card_generator.__init__": [],
+    "command_system.async_tasks": [
+      "config.__init__"
+    ],
+    "command_system.cmd_agent": [],
+    "command_system.cmd_agent_refactored": [],
+    "command_system.cmd_tasks": [],
+    "command_system.command_executor": [],
+    "command_system.__init__": [],
+    "command_system.cli.cmd_cli": [],
+    "command_system.services.command_executor": [],
+    "command_system.services.system_stats": [],
+    "command_system.services.task_cleanup": [],
+    "command_system.services.task_monitor": [],
+    "config.__init__": [],
+    "scripts.load_config": [],
+    "scripts.monitor_system": [],
+    "scripts.run_quality_checks": [],
+    "scripts.security_audit": [
+      "api.memory_manager",
+      "api.app",
+      "api.config",
+      "api.email_service",
+      "api.models",
+      "api.interfaces",
+      "api.di_container",
+      "api.__init__"
+    ],
+    "scripts.security_audit_simple": [
+      "api.memory_manager",
+      "api.app",
+      "api.config",
+      "api.email_service",
+      "api.models",
+      "api.interfaces",
+      "api.di_container",
+      "api.__init__"
+    ],
+    "scripts.security_fix": [],
+    "scripts.security_monitor": [],
+    "scripts.setup_production": [],
+    "scripts.setup_team_simple": [],
+    "scripts.simple_security_check": [],
+    "scripts.team_setup": [],
+    "tests.conftest": [],
+    "tests.quick_test": [],
+    "tests.simple_test": [],
+    "tests.__init__": [],
+    "tests.api.test_app": [],
+    "tests.api.__init__": [],
+    "tests.card_generator.test_line2card": [],
+    "tests.card_generator.__init__": [],
+    "tests.command_system.test_cmd_agent": [
+      "command_system.async_tasks",
+      "api.config",
+      "command_system.command_executor",
+      "command_system.cmd_agent_refactored",
+      "command_system.services.system_stats",
+      "api.di_container",
+      "api.email_service",
+      "api.models",
+      "command_system.services.task_cleanup",
+      "api.memory_manager",
+      "command_system.cli.cmd_cli",
+      "command_system.cmd_tasks",
+      "command_system.services.task_monitor",
+      "api.interfaces",
+      "command_system.services.command_executor",
+      "api.__init__",
+      "command_system.__init__",
+      "api.app",
+      "command_system.cmd_agent"
+    ],
+    "tests.command_system.__init__": [],
+    "tests.utils.test_string_utils": [
+      "utils.string_utils",
+      "utils.redis_manager",
+      "utils.__init__",
+      "utils.deepseekeytest"
+    ],
+    "tests.utils.__init__": [],
+    "utils.deepseekeytest": [],
+    "utils.redis_manager": [],
+    "utils.string_utils": [],
+    "utils.__init__": []
+  },
+  "recommendations": [
+    "Refactor high-coupling modules to reduce dependencies"
+  ]
+}

@@ -1,0 +1,170 @@
+version: '3.8'
+
+services:
+  # 主API服务
+  api:
+    build: .
+    image: pythoncode:latest
+    container_name: pythoncode-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=sqlite:///instance/users.db
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - MAIL_SERVER=${MAIL_SERVER:-smtp.gmail.com}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USE_TLS=${MAIL_USE_TLS:-true}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+    volumes:
+      - ./instance:/app/instance:rw
+      - ./logs:/app/logs:rw
+      - ./data:/app/data:rw
+      - ./input.xlsx:/app/input.xlsx:ro
+    networks:
+      - pythoncode-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: python api/app.py
+
+  # CMD Agent服务（可选）
+  cmd-agent:
+    build: .
+    image: pythoncode:latest
+    container_name: pythoncode-cmd-agent
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=production
+      - CMD_MAX_WORKERS=7
+      - CMD_TIMEOUT=15
+    volumes:
+      - ./logs:/app/logs:rw
+      - ./data:/app/data:rw
+    networks:
+      - pythoncode-network
+    stdin_open: true
+    tty: true
+    command: python command_system/cmd_agent.py interactive
+
+  # 名片生成器服务（可选，批处理）
+  card-generator:
+    build: .
+    image: pythoncode:latest
+    container_name: pythoncode-card-generator
+    restart: "no"  # 不自动重启，手动触发
+    environment:
+      - FLASK_ENV=production
+    volumes:
+      - ./input.xlsx:/app/input.xlsx:ro
+      - ./output.xlsx:/app/output.xlsx:rw
+      - ./data:/app/data:rw
+    networks:
+      - pythoncode-network
+    command: python card_generator/Line2Card.py
+
+  # Nginx反向代理（可选）
+  nginx:
+    image: nginx:alpine
+    container_name: pythoncode-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx:rw
+    depends_on:
+      - api
+    networks:
+      - pythoncode-network
+
+  # PostgreSQL数据库（可选，替代SQLite）
+  postgres:
+    image: postgres:15-alpine
+    container_name: pythoncode-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=pythoncode
+      - POSTGRES_USER=pythoncode
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - pythoncode-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pythoncode"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis缓存（可选）
+  redis:
+    image: redis:7-alpine
+    container_name: pythoncode-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - pythoncode-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 监控服务（可选）
+  monitor:
+    build: .
+    image: pythoncode:latest
+    container_name: pythoncode-monitor
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=production
+    volumes:
+      - ./logs:/app/logs:rw
+      - ./instance:/app/instance:ro
+    networks:
+      - pythoncode-network
+    command: >
+      sh -c "
+      echo '启动性能监控...' &&
+      python -c '
+      import time
+      from memory_manager import init_memory_monitoring
+      init_memory_monitoring(interval_seconds=60)
+      while True:
+          time.sleep(3600)
+      '
+      "
+
+# 网络配置
+networks:
+  pythoncode-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# 卷配置
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  instance-data:
+    driver: local
+  logs-data:
+    driver: local
