@@ -26,6 +26,14 @@ defaults:
   run:
     shell: bash
 
+# Cache configuration for performance optimization
+cache:
+  paths:
+    - ~/.cache/pip
+    - ~/.npm
+    - ~/.yarn
+    - ~/.cargo
+
 jobs:
   # ==================== QUALITY GATES ====================
   
@@ -468,14 +476,6 @@ jobs:
           echo "Performance tests completed"
 
 # ==================== WORKFLOW OPTIMIZATION ====================
-
-# Cache configuration for performance optimization
-cache:
-  paths:
-    - ~/.cache/pip
-    - ~/.npm
-    - ~/.yarn
-    - ~/.cargo
 
 # Concurrency control to prevent multiple runs on same branch
 concurrency:
