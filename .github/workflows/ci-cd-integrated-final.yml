@@ -26,14 +26,6 @@ defaults:
   run:
     shell: bash
 
-# Cache configuration for performance optimization
-cache:
-  paths:
-    - ~/.cache/pip
-    - ~/.npm
-    - ~/.yarn
-    - ~/.cargo
-
 jobs:
   # ==================== QUALITY GATES ====================
   
