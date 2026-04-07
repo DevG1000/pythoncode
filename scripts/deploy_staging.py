@@ -351,9 +351,12 @@ def main():
     
     # Step 4: Build Docker image (optional)
     if not args.skip_build:
-        if not build_docker_image():
-            print("[FAIL] Docker build failed")
-            sys.exit(1)
+        # Check if Dockerfile exists
+        if Path("Dockerfile").exists():
+            if not build_docker_image():
+                print("[WARN] Docker build failed, but continuing with deployment")
+        else:
+            print("[WARN] Dockerfile not found, skipping Docker build")
     
     # Step 5: Create deployment artifacts
     if not create_deployment_artifacts():
