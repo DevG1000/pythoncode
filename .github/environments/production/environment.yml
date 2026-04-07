@@ -1,0 +1,458 @@
+# Production Environment Configuration
+# This is the live production environment - highest security and reliability standards
+
+name: production
+description: "Production environment - live customer-facing system"
+url: "https://pythoncode.com"
+
+# Deployment settings - strictest controls
+deployment_branch_policy:
+  protected_branches: true
+  custom_branch_policies: true
+  allowed_branches:
+    - "main"
+    - "release/**"
+  require_approval: true
+
+# Reviewers required for deployment to this environment
+# Multiple levels of approval required
+reviewers:
+  primary:
+    - "cto"
+    - "security-lead"
+    - "ops-team-lead"
+  
+  secondary:
+    - "team-leads"
+    - "product-owner"
+  
+  emergency:
+    - "on-call-engineer"
+    - "devops-manager"
+
+# Required checks that must pass before deployment
+# All checks must pass for production
+required_checks:
+  - "code-quality"
+  - "security-scan"
+  - "test-coverage"
+  - "integration-tests"
+  - "performance-tests"
+  - "security-audit"
+  - "docker-build"
+  - "smoke-tests"
+  - "canary-tests"
+
+# Environment variables
+# These are set as environment secrets in GitHub
+variables:
+  ENVIRONMENT: "production"
+  DEPLOYMENT_TYPE: "production"
+  
+  # API configuration
+  API_URL: "https://api.pythoncode.com"
+  API_PORT: "8080"
+  
+  # Database configuration
+  DATABASE_TYPE: "postgresql"
+  DATABASE_HOST: "production-db.pythoncode.com"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "pythoncode_production"
+  
+  # Redis configuration
+  REDIS_HOST: "production-redis.pythoncode.com"
+  REDIS_PORT: "6379"
+  
+  # Logging configuration
+  LOG_LEVEL: "WARNING"
+  LOG_FORMAT: "json"
+  LOG_SENSITIVE_DATA: "false"
+  
+  # Monitoring configuration
+  METRICS_ENABLED: "true"
+  TRACING_ENABLED: "true"
+  PROFILING_ENABLED: "true"
+  
+  # Feature flags
+  FEATURE_NEW_API: "false"
+  FEATURE_EXPERIMENTAL: "false"
+  FEATURE_MAINTENANCE_MODE: "false"
+
+# Secrets required for this environment
+# These must be set in GitHub Secrets with highest security
+secrets:
+  - "PRODUCTION_API_KEY"
+  - "PRODUCTION_DB_PASSWORD"
+  - "PRODUCTION_REDIS_PASSWORD"
+  - "PRODUCTION_JWT_SECRET"
+  - "PRODUCTION_ENCRYPTION_KEY"
+  - "PRODUCTION_SSL_CERTIFICATE"
+  - "PRODUCTION_SSL_PRIVATE_KEY"
+  - "PRODUCTION_SMTP_PASSWORD"
+  - "PRODUCTION_PAYMENT_GATEWAY_KEY"
+
+# Resource configuration - scaled for production load
+resources:
+  # CPU and memory limits
+  limits:
+    cpu: "8"
+    memory: "16Gi"
+  
+  requests:
+    cpu: "4"
+    memory: "8Gi"
+  
+  # Storage requirements
+  storage:
+    database: "500Gi"
+    logs: "100Gi"
+    backups: "1Ti"
+    cache: "50Gi"
+  
+  # Network configuration
+  network:
+    internal_port: 8080
+    external_port: 443  # HTTPS only
+    ssl_enabled: true
+    cors_allowed_origins:
+      - "https://pythoncode.com"
+      - "https://app.pythoncode.com"
+    rate_limiting_enabled: true
+    waf_enabled: true
+
+# Monitoring and alerts - comprehensive monitoring
+monitoring:
+  # Health check endpoints
+  health_checks:
+    - endpoint: "/health"
+      interval: "10s"
+      timeout: "3s"
+      failure_threshold: 3
+    
+    - endpoint: "/ready"
+      interval: "10s"
+      timeout: "3s"
+      failure_threshold: 3
+    
+    - endpoint: "/live"
+      interval: "10s"
+      timeout: "3s"
+      failure_threshold: 3
+  
+  # Metrics to collect
+  metrics:
+    - "cpu_usage"
+    - "memory_usage"
+    - "disk_usage"
+    - "network_throughput"
+    - "request_latency"
+    - "error_rate"
+    - "throughput"
+    - "queue_length"
+    - "cache_hit_rate"
+    - "database_connections"
+  
+  # Alert thresholds - strict for production
+  alerts:
+    - metric: "cpu_usage"
+      threshold: "70%"
+      duration: "2m"
+      severity: "warning"
+    
+    - metric: "memory_usage"
+      threshold: "80%"
+      duration: "2m"
+      severity: "warning"
+    
+    - metric: "error_rate"
+      threshold: "1%"
+      duration: "1m"
+      severity: "critical"
+    
+    - metric: "request_latency_p95"
+      threshold: "500ms"
+      duration: "2m"
+      severity: "warning"
+    
+    - metric: "database_connections"
+      threshold: "90%"
+      duration: "2m"
+      severity: "critical"
+    
+    - metric: "disk_usage"
+      threshold: "85%"
+      duration: "5m"
+      severity: "warning"
+
+# Backup configuration - robust and frequent
+backup:
+  enabled: true
+  schedule: "0 */4 * * *"  # Every 4 hours
+  retention: "90 days"
+  locations:
+    - "s3://pythoncode-backups/production/primary"
+    - "s3://pythoncode-backups-secondary/production"  # Secondary location
+  
+  # What to backup
+  include:
+    - "database"
+    - "configuration"
+    - "logs"
+    - "user_uploads"
+    - "static_assets"
+  
+  exclude:
+    - "cache"
+    - "temp_files"
+  
+  # Backup verification
+  verify: true
+  test_restore_frequency: "monthly"
+
+# Disaster recovery
+disaster_recovery:
+  enabled: true
+  rto: "4 hours"  # Recovery Time Objective
+  rpo: "15 minutes"  # Recovery Point Objective
+  
+  # DR sites
+  sites:
+    primary:
+      region: "us-east-1"
+      provider: "aws"
+    
+    secondary:
+      region: "us-west-2"
+      provider: "aws"
+  
+  # Failover procedure
+  failover:
+    manual: true
+    approval_required: true
+    notification_channels:
+      - "pagerduty"
+      - "slack#dr"
+      - "email:dr-team@pythoncode.com"
+
+# Deployment strategy
+deployment_strategy:
+  type: "blue-green"
+  canary_percentage: 10
+  canary_duration: "15 minutes"
+  automatic_rollback: true
+  rollback_threshold: "5% error rate"
+  
+  # Deployment windows
+  windows:
+    - day: "tuesday"
+      time: "02:00-04:00"
+      description: "Weekly deployment window"
+    
+    - day: "thursday"
+      time: "02:00-04:00"
+      description: "Weekly deployment window"
+  
+  # Blackout periods
+  blackout_periods:
+    - start: "2026-12-20"
+      end: "2027-01-05"
+      reason: "Holiday freeze"
+    
+    - start: "2026-06-30"
+      end: "2026-07-07"
+      reason: "End of quarter freeze"
+
+# Access control - strictest controls
+access:
+  # Who can deploy to this environment
+  deployers:
+    teams:
+      - "devops"
+      - "team-leads"
+    
+    users:
+      - "ci-bot"
+      - "deploy-bot"
+    
+    # Multi-factor authentication required
+    mfa_required: true
+  
+  # Who can access the environment
+  viewers:
+    teams:
+      - "devops"
+      - "team-leads"
+      - "security-team"
+    
+    users:
+      - "monitoring-bot"
+    
+    # Justification required for access
+    justification_required: true
+  
+  # SSH access (restricted)
+  ssh_access:
+    enabled: true
+    bastion_host_required: true
+    allowed_ips:
+      - "10.0.0.0/8"
+      - "vpn.pythoncode.com"
+    session_recording: true
+    timeout: "30 minutes"
+
+# Security configuration
+security:
+  # Network security
+  network_security:
+    vpc_enabled: true
+    subnet_private: true
+    security_groups:
+      - "production-web"
+      - "production-database"
+      - "production-cache"
+    
+  # Data security
+  data_security:
+    encryption_at_rest: true
+    encryption_in_transit: true
+    key_rotation: "90 days"
+    data_classification: "confidential"
+  
+  # Application security
+  application_security:
+    waf_enabled: true
+    ddos_protection: true
+    vulnerability_scanning: "daily"
+    penetration_testing: "quarterly"
+  
+  # Compliance
+  compliance:
+    standards:
+      - "ISO-27001"
+      - "SOC-2 Type II"
+      - "GDPR"
+      - "HIPAA"
+      - "PCI-DSS"
+    
+    audit:
+      internal: "quarterly"
+      external: "annually"
+      retention: "7 years"
+
+# Cost management
+cost:
+  budget: 5000  # Monthly budget in USD
+  alert_threshold: 75%  # Alert when 75% of budget is used
+  tracking_enabled: true
+  optimization_enabled: true
+  
+  tags:
+    environment: "production"
+    project: "pythoncode"
+    team: "devops"
+    cost_center: "engineering"
+  
+  # Cost alerts
+  alerts:
+    - threshold: "1000"
+      period: "day"
+      severity: "critical"
+    
+    - threshold: "5000"
+      period: "month"
+      severity: "warning"
+
+# Integration with other systems
+integrations:
+  # CI/CD integration
+  ci_cd:
+    provider: "github-actions"
+    workflow: "deploy-production"
+    triggers:
+      - "push_to_main"
+      - "manual_dispatch_with_approval"
+  
+  # Monitoring integration
+  monitoring:
+    provider: "datadog"
+    url: "https://datadog.pythoncode.com"
+    dashboard: "production-overview"
+  
+  # Logging integration
+  logging:
+    provider: "splunk"
+    url: "https://splunk.pythoncode.com"
+    index: "pythoncode-prod"
+  
+  # Alerting integration
+  alerting:
+    provider: "pagerduty"
+    service: "pythoncode-production"
+    escalation_policy: "production-oncall"
+  
+  # Incident management
+  incident_management:
+    provider: "jira-service-desk"
+    project: "PROD"
+    priority_field: "severity"
+
+# Documentation links
+documentation:
+  runbook: "https://runbooks.pythoncode.com/production"
+  architecture: "https://docs.pythoncode.com/architecture/production"
+  troubleshooting: "https://docs.pythoncode.com/troubleshooting/production"
+  api_docs: "https://api.pythoncode.com/docs"
+  monitoring_dashboard: "https://grafana.pythoncode.com/d/production"
+  incident_response: "https://docs.pythoncode.com/incident-response"
+
+# Emergency procedures
+emergency_procedures:
+  # Contact list
+  contacts:
+    primary_oncall: "+1-555-0100"
+    secondary_oncall: "+1-555-0101"
+    security_lead: "+1-555-0102"
+    cto: "+1-555-0103"
+  
+  # Emergency access
+  emergency_access:
+    break_glass_procedure: "https://docs.pythoncode.com/break-glass"
+    approval_required: "cto"
+    audit_trail: true
+  
+  # Communication channels
+  communication:
+    primary: "slack#production-emergency"
+    secondary: "zoom-war-room"
+    status_page: "https://status.pythoncode.com"
+
+# Notes and comments
+notes: |
+  PRODUCTION ENVIRONMENT - HANDLE WITH CARE
+  
+  This is the live production environment serving real customers.
+  
+  CRITICAL RULES:
+  1. All deployments must be approved by at least 2 reviewers
+  2. No deployments during blackout periods
+  3. All changes must be tested in staging first
+  4. Rollback plan must be documented for every deployment
+  5. Security scanning is mandatory and must pass
+  
+  PERFORMANCE:
+  - Expected load: 10,000 RPM
+  - Uptime SLA: 99.95%
+  - Response time SLA: < 200ms p95
+  
+  SECURITY:
+  - All access is logged and audited
+  - No direct database access allowed
+  - Secrets are rotated quarterly
+  - Regular security audits required
+  
+  CONTACT:
+  - Primary oncall: devops-team@pythoncode.com
+  - Emergency: +1-555-EMERGENCY
+  - Status page: https://status.pythoncode.com
+  
+  Remember: If in doubt, don't deploy. Ask for help.

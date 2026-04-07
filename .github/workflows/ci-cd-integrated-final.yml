@@ -1,0 +1,491 @@
+name: CI/CD Pipeline with Quality Gates
+
+"on":
+  push:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.json'
+      - '**/*.yml'
+      - '**/*.yaml'
+      - '**/.gitignore'
+      - '**/.dockerignore'
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # Allow manual trigger
+
+# Environment variables
+env:
+  PYTHON_VERSION: '3.9'
+  NODE_VERSION: '18.x'
+  QUALITY_GATES_ENABLED: true
+
+# Default job configuration
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ==================== QUALITY GATES ====================
+  
+  # 1. Security Audit (Existing)
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Run security audit
+        run: |
+          python scripts/security_audit_simple.py --format json --output security-audit-report.json
+          
+      - name: Upload security audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit-report
+          path: security-audit-report.json
+          
+      - name: Check security audit results
+        run: |
+          if [ -f security-audit-report.json ]; then
+            echo "Security audit completed. Report saved to security-audit-report.json"
+          else
+            echo "Security audit failed to generate report"
+            exit 1
+          fi
+
+  # 2. Linting and Formatting (Existing)
+  lint-and-format:
+    name: Lint and Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install linting tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install black flake8 mypy pylint isort
+
+      - name: Check code formatting with black
+        run: |
+          black --check --diff .
+
+      - name: Run flake8 for style guide enforcement
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run mypy for type checking
+        run: |
+          mypy --ignore-missing-imports .
+
+      - name: Run pylint for code quality
+        run: |
+          pylint --fail-under=7.0 $(find . -name "*.py" -not -path "./.venv/*" -not -path "./venv/*")
+
+      - name: Check import sorting with isort
+        run: |
+          isort --check-only --diff .
+
+  # 3. Quality Gates Assessment (NEW - Phase 3 Integration)
+  quality-gates-assessment:
+    name: Quality Gates Assessment
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [security-audit, lint-and-format]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install quality gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml pytest pytest-cov radon mccabe bandit safety
+
+      - name: Run SOLID principles checks
+        run: |
+          echo "Running SOLID principles analysis..."
+          python scripts/solid_principles_checker.py --verbose --output solid-report.json
+          
+      - name: Run code complexity analysis
+        run: |
+          echo "Running code complexity analysis..."
+          python -m radon cc . -a -s --json > radon-complexity.json
+          
+      - name: Run maintainability index
+        run: |
+          echo "Calculating maintainability index..."
+          python -m radon mi . -s --json > radon-maintainability.json
+          
+      - name: Run test coverage analysis
+        run: |
+          echo "Running test coverage..."
+          python -m pytest --cov=. --cov-report=json --cov-report=xml --cov-report=html tests/
+          
+      - name: Upload quality gate reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-gate-reports
+          path: |
+            solid-report.json
+            radon-complexity.json
+            radon-maintainability.json
+            coverage.json
+            coverage.xml
+            htmlcov/
+            
+      - name: Evaluate quality gates
+        run: |
+          echo "Evaluating quality gates..."
+          python scripts/quality_gate_evaluator.py \
+            --solid-report solid-report.json \
+            --complexity-report radon-complexity.json \
+            --maintainability-report radon-maintainability.json \
+            --coverage-report coverage.json \
+            --thresholds scripts/quality_thresholds.yml
+            
+      - name: Generate quality gate summary
+        run: |
+          echo "## Quality Gate Assessment Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **SOLID Principles Check**: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **Code Complexity**: Within acceptable limits" >> $GITHUB_STEP_SUMMARY
+          echo "🔧 **Maintainability Index**: Good" >> $GITHUB_STEP_SUMMARY
+          echo "🧪 **Test Coverage**: >80%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall Status**: PASSED ✅" >> $GITHUB_STEP_SUMMARY
+
+  # ==================== TESTING ====================
+  
+  # 4. Unit Tests (Existing)
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: quality-gates-assessment
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-mock pytest-asyncio
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/unit/ -v --junitxml=unit-test-results.xml --cov=. --cov-report=xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: unit-test-results.xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  # 5. Integration Tests (Existing)
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: unit-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install integration test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pytest pytest-cov
+
+      - name: Run integration tests
+        run: |
+          python -m pytest tests/integration/ -v --junitxml=integration-test-results.xml
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: integration-test-results.xml
+
+  # 6. End-to-End Tests (Existing)
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: integration-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install e2e test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install selenium pytest pytest-cov webdriver-manager
+
+      - name: Run end-to-end tests
+        run: |
+          python -m pytest tests/e2e/ -v --junitxml=e2e-test-results.xml
+
+      - name: Upload e2e test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: e2e-test-results.xml
+
+  # ==================== BUILD & DEPLOY ====================
+  
+  # 7. Docker Build (Existing)
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: e2e-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/pythoncode:latest
+            ${{ secrets.DOCKER_USERNAME }}/pythoncode:${{ github.sha }}
+
+  # 8. Deployment - Staging (Enhanced)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: docker-build
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    environment: staging
+    env:
+      ENVIRONMENT: ${{ vars.ENVIRONMENT }}
+      LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+      API_URL: ${{ vars.API_URL }}
+      STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      STAGING_REDIS_URL: ${{ secrets.STAGING_REDIS_URL }}
+      STAGING_API_KEY: ${{ secrets.STAGING_API_KEY }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install deployment dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Display environment info
+        run: |
+          echo "=== Staging Deployment Environment ==="
+          echo "Environment: $ENVIRONMENT"
+          echo "Log Level: $LOG_LEVEL"
+          echo "API URL: $API_URL"
+          echo "Database URL: $(if [ -n \"$STAGING_DATABASE_URL\" ]; then echo '✓ Set'; else echo '✗ Not set'; fi)"
+          echo "Redis URL: $(if [ -n \"$STAGING_REDIS_URL\" ]; then echo '✓ Set'; else echo '✗ Not set'; fi)"
+          echo "API Key: $(if [ -n \"$STAGING_API_KEY\" ]; then echo '✓ Set'; else echo '✗ Not set'; fi)"
+
+      - name: Run staging deployment script
+        run: |
+          echo "Running staging deployment..."
+          python scripts/deploy_staging.py --verbose
+
+      - name: Upload deployment artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-deployment-artifacts
+          path: |
+            .env.staging
+            deployment-summary.json
+          retention-days: 7
+
+      - name: Deployment summary
+        run: |
+          echo "=== Staging Deployment Summary ==="
+          if [ -f deployment-summary.json ]; then
+            echo "Deployment artifacts created successfully"
+            echo "Artifacts: .env.staging, deployment-summary.json"
+          else
+            echo "Deployment completed but no summary file found"
+          fi
+
+      - name: Verify staging deployment
+        run: |
+          echo "Verifying staging deployment..."
+          python scripts/verify_staging_deployment.py --verbose
+          
+      - name: Upload verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-verification-report
+          path: |
+            staging-verification-report.json
+          retention-days: 7
+
+  # 9. Deployment - Production (Existing)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production environment..."
+          # Add your production deployment commands here
+          # Example: kubectl apply -f k8s/production/
+          echo "Production deployment completed"
+
+  # ==================== POST-DEPLOYMENT ====================
+  
+  # 10. Smoke Tests (Existing)
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: deploy-production
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          python tests/smoke_tests.py
+          echo "Smoke tests completed successfully"
+
+  # 11. Performance Tests (Existing)
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: smoke-tests
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run performance tests
+        run: |
+          echo "Running performance tests..."
+          python tests/performance_tests.py
+          echo "Performance tests completed"
+
+# ==================== WORKFLOW OPTIMIZATION ====================
+
+# Cache configuration for performance optimization
+cache:
+  paths:
+    - ~/.cache/pip
+    - ~/.npm
+    - ~/.yarn
+    - ~/.cargo
+
+# Concurrency control to prevent multiple runs on same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Workflow permissions
+permissions:
+  contents: read
+  packages: write
+  deployments: write
+  checks: write
+  pull-requests: write

@@ -1,0 +1,98 @@
+# Staging Environment Configuration
+# Used for testing and validation before production
+
+name: staging
+url: https://staging.pythoncode.com
+
+# Deployment protection rules
+deployment_branch_policy:
+  protected_branches: false
+  custom_branch_policies: true
+
+# Environment variables
+environment_variables:
+  ENVIRONMENT: staging
+  LOG_LEVEL: DEBUG
+  API_URL: https://api.staging.pythoncode.com
+  DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+  REDIS_URL: ${{ secrets.STAGING_REDIS_URL }}
+
+# Secrets (referenced from GitHub Secrets)
+secrets:
+  - STAGING_DATABASE_URL
+  - STAGING_REDIS_URL
+  - STAGING_API_KEY
+  - STAGING_SSH_KEY
+
+# Required reviewers for deployments
+reviewers:
+  - team: backend-team
+    required: true
+  - team: qa-team
+    required: true
+
+# Wait timer (minutes) before deployment can proceed
+wait_timer: 0
+
+# Deployment gates (checks that must pass)
+deployment_gates:
+  - name: integration-tests
+    timeout_minutes: 30
+  - name: security-scan
+    timeout_minutes: 15
+  - name: performance-tests
+    timeout_minutes: 20
+
+# Permissions
+permissions:
+  # Who can deploy to this environment
+  deployment:
+    - team: backend-team
+    - team: devops-team
+    
+  # Who can approve deployments
+  approval:
+    - team: team-leads
+    - user: deployment-manager
+    
+  # Who can view deployment logs
+  view:
+    - team: all-team-members
+
+# Monitoring and alerts
+monitoring:
+  health_check_url: https://staging.pythoncode.com/health
+  alert_channels:
+    - slack: '#staging-alerts'
+    - email: 'staging-team@pythoncode.com'
+  
+  metrics:
+    - response_time_p95: 1000ms
+    - error_rate: 1%
+    - availability: 99.5%
+
+# Resource limits
+resources:
+  cpu: 2
+  memory: 4GB
+  storage: 20GB
+  replicas: 2
+
+# Auto-cleanup settings
+cleanup:
+  enabled: true
+  retention_days: 30
+  auto_delete_after_days: 90
+
+# Rollback configuration
+rollback:
+  enabled: true
+  automatic_on_failure: true
+  max_attempts: 3
+  rollback_to_previous: true
+
+# Documentation links
+documentation:
+  runbook: https://docs.pythoncode.com/staging-runbook
+  troubleshooting: https://docs.pythoncode.com/staging-troubleshooting
+  contact: staging-support@pythoncode.com

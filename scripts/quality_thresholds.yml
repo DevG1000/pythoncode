@@ -1,0 +1,152 @@
+# Quality Gate Thresholds Configuration
+# Defines minimum acceptable values for quality metrics
+
+version: '1.0'
+last_updated: '2026-04-03'
+
+# SOLID Principles
+solid_principles:
+  min_score: 80  # Minimum SOLID principles compliance score (0-100)
+  max_violations: 5  # Maximum allowed violations across all principles
+  weight: 0.25  # Weight in overall quality score
+
+# Code Complexity
+code_complexity:
+  max_cyclomatic_complexity: 10  # Maximum cyclomatic complexity per function
+  max_maintainability_index: 65  # Minimum maintainability index (higher is better)
+  max_lines_per_function: 50  # Maximum lines of code per function
+  max_parameters_per_function: 5  # Maximum parameters per function
+  weight: 0.20
+
+# Test Coverage
+test_coverage:
+  min_line_coverage: 80  # Minimum line coverage percentage
+  min_branch_coverage: 70  # Minimum branch coverage percentage
+  min_function_coverage: 75  # Minimum function coverage percentage
+  required_test_categories:  # Required test types
+    - unit
+    - integration
+    - e2e
+  weight: 0.25
+
+# Security
+security:
+  max_critical_vulnerabilities: 0  # Zero tolerance for critical vulnerabilities
+  max_high_vulnerabilities: 2  # Maximum high severity vulnerabilities
+  max_medium_vulnerabilities: 5  # Maximum medium severity vulnerabilities
+  required_scans:  # Required security scans
+    - static_analysis
+    - dependency_check
+    - secret_detection
+  weight: 0.15
+
+# Performance
+performance:
+  max_response_time_ms: 1000  # Maximum API response time in milliseconds
+  max_memory_mb: 512  # Maximum memory usage in MB
+  max_cpu_percent: 80  # Maximum CPU usage percentage
+  performance_test_required: true  # Whether performance tests are required
+  weight: 0.10
+
+# Code Style and Best Practices
+code_style:
+  max_style_violations: 10  # Maximum style guide violations
+  required_linters:  # Required linters to pass
+    - black
+    - flake8
+    - mypy
+    - pylint
+  min_pylint_score: 7.0  # Minimum pylint score (0-10)
+  weight: 0.05
+
+# Documentation
+documentation:
+  min_doc_coverage: 60  # Minimum documentation coverage percentage
+  required_docs:  # Required documentation files
+    - README.md
+    - CONTRIBUTING.md
+    - API_DOCS.md
+  code_comment_ratio: 0.2  # Minimum comment-to-code ratio
+  weight: 0.05
+
+# Dependencies
+dependencies:
+  max_outdated_dependencies: 5  # Maximum outdated dependencies
+  max_vulnerable_dependencies: 0  # Maximum dependencies with known vulnerabilities
+  license_whitelist:  # Allowed licenses
+    - MIT
+    - Apache-2.0
+    - BSD-3-Clause
+    - BSD-2-Clause
+  weight: 0.05
+
+# Build and Deployment
+build:
+  max_build_time_seconds: 300  # Maximum build time in seconds
+  max_image_size_mb: 500  # Maximum Docker image size in MB
+  required_artifacts:  # Required build artifacts
+    - docker_image
+    - test_reports
+    - coverage_reports
+  weight: 0.05
+
+# Overall Quality Score Calculation
+scoring:
+  passing_threshold: 80  # Minimum overall score to pass (0-100)
+  warning_threshold: 70  # Score below which warnings are issued
+  critical_threshold: 60  # Score below which quality gate fails
+  
+  # Score weights (must sum to 1.0)
+  weights:
+    solid_principles: 0.25
+    code_complexity: 0.20
+    test_coverage: 0.25
+    security: 0.15
+    performance: 0.10
+    code_style: 0.05
+
+# Enforcement Levels
+enforcement:
+  blocking:  # Gates that block deployment if failed
+    - security.critical_vulnerabilities
+    - test_coverage.min_line_coverage
+    - solid_principles.min_score
+    
+  warning:  # Gates that generate warnings but don't block
+    - code_complexity.max_cyclomatic_complexity
+    - performance.max_response_time_ms
+    - documentation.min_doc_coverage
+    
+  informational:  # Gates for monitoring only
+    - dependencies.max_outdated_dependencies
+    - build.max_build_time_seconds
+
+# Exceptions and Overrides
+exceptions:
+  allowed_for:  # Scenarios where exceptions can be granted
+    - emergency_fixes
+    - proof_of_concepts
+    - experimental_features
+    
+  approval_required:  # Who can approve exceptions
+    - team_lead
+    - security_lead
+    - architect
+    
+  documentation_required: true  # Whether exceptions require documentation
+  time_limit_hours: 24  # Maximum duration for temporary exceptions
+
+# Monitoring and Reporting
+monitoring:
+  check_frequency: daily  # How often to check quality gates
+  report_format:  # Report formats to generate
+    - json
+    - html
+    - markdown
+    
+  alert_channels:  # Where to send alerts
+    - slack
+    - email
+    - dashboard
+    
+  retention_days: 90  # How long to keep quality reports

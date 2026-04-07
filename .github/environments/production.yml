@@ -1,0 +1,177 @@
+# Production Environment Configuration
+# Highest security and reliability requirements
+
+name: production
+url: https://pythoncode.com
+
+# Deployment protection rules
+deployment_branch_policy:
+  protected_branches: true
+  custom_branch_policies: false
+  allowed_branches:
+    - main
+    - hotfix/**
+
+# Environment variables
+environment_variables:
+  ENVIRONMENT: production
+  LOG_LEVEL: INFO
+  API_URL: https://api.pythoncode.com
+  DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+  REDIS_URL: ${{ secrets.PRODUCTION_REDIS_URL }}
+  CDN_URL: https://cdn.pythoncode.com
+
+# Secrets (referenced from GitHub Secrets)
+secrets:
+  - PRODUCTION_DATABASE_URL
+  - PRODUCTION_REDIS_URL
+  - PRODUCTION_API_KEY
+  - PRODUCTION_SSH_KEY
+  - SSL_CERTIFICATE
+  - ENCRYPTION_KEY
+
+# Required reviewers for deployments (multiple approvals required)
+reviewers:
+  - team: team-leads
+    required: true
+    count: 2
+  - team: security-team
+    required: true
+    count: 1
+  - user: cto
+    required: true
+
+# Wait timer (minutes) before deployment can proceed
+wait_timer: 30  # 30-minute cool-off period
+
+# Deployment gates (checks that must pass)
+deployment_gates:
+  - name: e2e-tests
+    timeout_minutes: 45
+  - name: security-audit
+    timeout_minutes: 30
+  - name: performance-tests
+    timeout_minutes: 60
+  - name: smoke-tests
+    timeout_minutes: 15
+
+# Permissions (strictly controlled)
+permissions:
+  # Who can deploy to this environment
+  deployment:
+    - team: devops-team
+    - user: senior-devops-engineer
+    
+  # Who can approve deployments
+  approval:
+    - team: team-leads
+    - team: security-team
+    - user: cto
+    - user: head-of-engineering
+    
+  # Who can view deployment logs
+  view:
+    - team: team-leads
+    - team: devops-team
+    - team: security-team
+
+# Monitoring and alerts (enhanced for production)
+monitoring:
+  health_check_url: https://pythoncode.com/health
+  alert_channels:
+    - slack: '#production-alerts'
+    - slack: '#oncall-alerts'
+    - pagerduty: 'production-service'
+    - email: 'production-team@pythoncode.com'
+    - sms: '+15551234567'
+  
+  metrics:
+    - response_time_p95: 500ms
+    - error_rate: 0.1%
+    - availability: 99.9%
+    - cpu_utilization: 70%
+    - memory_utilization: 80%
+
+# Resource limits (scaled for production)
+resources:
+  cpu: 8
+  memory: 16GB
+  storage: 100GB
+  replicas: 4
+  auto_scaling:
+    min_replicas: 2
+    max_replicas: 10
+    target_cpu_utilization: 70%
+
+# Auto-cleanup settings
+cleanup:
+  enabled: false  # Manual cleanup only for production
+  retention_days: 365  # Keep logs for 1 year
+  backup_before_cleanup: true
+
+# Rollback configuration (critical for production)
+rollback:
+  enabled: true
+  automatic_on_failure: true
+  max_attempts: 1  # Immediate rollback on failure
+  rollback_to_previous: true
+  health_check_grace_period: 300  # 5 minutes
+  rollback_triggers:
+    - error_rate > 5%
+    - response_time_p95 > 2000ms
+    - health_check_failure
+
+# Change management requirements
+change_management:
+  change_ticket_required: true
+  maintenance_window:
+    enabled: true
+    windows:
+      - day: Sunday
+        time: '02:00-04:00 UTC'
+      - day: Wednesday
+        time: '22:00-23:00 UTC'
+  post_deployment_review: true
+  review_deadline_hours: 24
+
+# Compliance and security
+compliance:
+  standards:
+    - ISO-27001
+    - SOC-2
+    - GDPR
+    - HIPAA
+  audit_logging: true
+  log_retention_days: 365
+  access_logging: true
+
+# Disaster recovery
+disaster_recovery:
+  backup_frequency: daily
+  rto: 4 hours  # Recovery Time Objective
+  rpo: 1 hour   # Recovery Point Objective
+  multi_region: true
+  failover_regions:
+    - us-east-2
+    - eu-west-1
+
+# Documentation links
+documentation:
+  runbook: https://docs.pythoncode.com/production-runbook
+  troubleshooting: https://docs.pythoncode.com/production-troubleshooting
+  incident_response: https://docs.pythoncode.com/incident-response
+  contact: production-support@pythoncode.com
+  emergency_contact: +15551234567
+
+# Emergency procedures
+emergency:
+  bypass_approval_allowed: true
+  bypass_conditions:
+    - security_vulnerability
+    - service_outage
+    - data_corruption
+  emergency_approvers:
+    - user: cto
+    - user: head-of-security
+  post_emergency_review: true
+  review_timeframe_hours: 48
