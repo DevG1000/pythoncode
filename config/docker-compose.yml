@@ -68,6 +68,21 @@ services:
       - pythoncode-network
     command: python card_generator/Line2Card.py
 
+  # 架构质量评估Agent服务（可选）
+  architecture-agent:
+    build: .
+    image: pythoncode:latest
+    container_name: pythoncode-architecture-agent
+    restart: "no"
+    environment:
+      - FLASK_ENV=production
+    volumes:
+      - ./reports:/app/reports:rw
+      - ./config:/app/config:ro
+    networks:
+      - pythoncode-network
+    command: python architecture_agent.py assess
+
   # Nginx反向代理（可选）
   nginx:
     image: nginx:alpine

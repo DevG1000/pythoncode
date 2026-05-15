@@ -162,3 +162,4 @@ ignore = [
 pythoncode-api = "api.app:main"
 pythoncode-cmd = "command_system.cmd_agent:main"
 pythoncode-card = "card_generator.Line2Card:main"
+pythoncode-arch-agent = "architecture_agent:main"

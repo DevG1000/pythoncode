@@ -1,0 +1,30 @@
+architecture_agent:
+  enabled: true
+  log_level: "INFO"
+  log_file: ""
+  analysis:
+    solid_principles:
+      enabled: true
+      max_methods_per_class: 12
+      max_method_lines: 80
+      max_function_params: 8
+      max_method_params: 6
+      max_function_lines: 100
+    dependency_analysis:
+      enabled: true
+      max_dependencies_per_module: 5
+      detect_circular: true
+    module_coupling:
+      enabled: true
+      high_coupling_threshold: 5
+    report:
+      output_dir: "reports/architecture"
+      save_json: true
+      save_markdown: true
+  scoring:
+    modular_design_max: 20
+    design_principles_max: 20
+    technology_selection_max: 20
+    scalability_max: 20
+    maintainability_max: 20
+    security_design_max: 20
