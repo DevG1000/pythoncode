@@ -7,6 +7,7 @@ This document provides guidelines for agentic coding agents working in this Pyth
 This is a multi-service Python project containing:
 - **API Service** (`app.py`): User registration API with email verification, password encryption, and async task management
 - **CMD Agent** (`cmd_agent.py`): Windows command execution agent with async task system (max 7 concurrent workers)
+- **Architecture Quality Agent** (`architecture_agent.py`): Architecture quality assessment agent for SOLID principles and dependency analysis
 - **Business Card Generator** (`Line2Card.py`): Excel data to image-based business cards
 - **Utility Modules**: String utilities, memory management, email service, Redis manager
 - **Testing**: Comprehensive pytest test suites for all major components
@@ -39,6 +40,9 @@ python cmd_agent.py execute "echo Hello"
 
 # Run business card generator
 python Line2Card.py
+
+# Run architecture quality assessment agent
+python architecture_agent.py assess
 
 # Run DeepSeek API test
 python deepseekeytest.py
@@ -285,6 +289,7 @@ project/
 ├── AGENTS.md              # This file
 ├── app.py                # Main Flask API
 ├── cmd_agent.py          # CMD Agent system
+├── architecture_agent.py # Architecture quality assessment agent
 ├── Line2Card.py          # Business card generator
 ├── requirements.txt      # Python dependencies
 ├── docker-compose.yml    # Docker Compose configuration
